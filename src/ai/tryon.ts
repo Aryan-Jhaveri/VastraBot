@@ -1,0 +1,51 @@
+import { ai, IMAGE_GEN_MODEL } from './client.js'
+import { extractGeminiImage } from './parse.js'
+import { saveImageFromBase64 } from '../storage/images.js'
+
+// Adapted from gemini-ai-tryon (oyeolamilekan/gemini-ai-tryon) — prompt v2.0
+const TRYON_PROMPT = `Generate a photorealistic virtual try-on image.
+
+CORE CONSTRAINTS (ABSOLUTE):
+- identity_lock: Maintain PERFECT facial identity, features, skin tone, and expression from person image. ZERO alterations to the face permitted. DO NOT GUESS OR HALLUCINATE FACIAL FEATURES.
+- garment_fidelity: Preserve EXACT color, pattern, texture, material, and design details from the clothing images. ZERO deviations allowed.
+- pose_preservation: Retain exact body pose and positioning from the person image.
+
+ADDITIONAL:
+- Simulate physically plausible draping and fit of the garments onto the person's body.
+- Maintain hair and non-clothing accessories unless logically occluded.
+- Apply consistent lighting across person and garments.
+- Render fine details (seams, buttons, texture) with high fidelity.
+
+PROHIBITIONS:
+- DO NOT alter facial features, identity, expression, or skin tone.
+- DO NOT modify the color, pattern, or style of any clothing item.
+- DO NOT change the person's pose.
+- DO NOT hallucinate or guess facial details.`
+
+/**
+ * Generate a virtual try-on image.
+ * @param userImageBase64 - Base64 of the person photo
+ * @param itemImageBase64s - Base64 array of clothing item images
+ * @returns Relative path to the saved result image (e.g. "images/tryon/abc.jpg")
+ */
+export async function generateTryOn(
+  userImageBase64: string,
+  itemImageBase64s: string[],
+): Promise<string> {
+  const parts = [
+    { inlineData: { mimeType: 'image/jpeg', data: userImageBase64 } },
+    ...itemImageBase64s.map(img => ({
+      inlineData: { mimeType: 'image/jpeg', data: img },
+    })),
+    { text: TRYON_PROMPT },
+  ]
+
+  const response = await ai.models.generateContent({
+    model: IMAGE_GEN_MODEL,
+    contents: [{ role: 'user', parts }],
+    config: { responseModalities: ['image'] },
+  })
+
+  const { data } = extractGeminiImage(response)
+  return saveImageFromBase64(data, 'tryon')
+}

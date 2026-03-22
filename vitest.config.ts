@@ -7,5 +7,6 @@ export default defineConfig({
     env: {
       CLOSET_DATA_DIR: '/tmp/closet-test',
     },
+    isolate: false,
   },
 })
