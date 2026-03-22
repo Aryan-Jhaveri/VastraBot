@@ -1,7 +1,8 @@
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { db, DATA_DIR } from './client.js'
 import { mkdirSync } from 'fs'
-import { join, dirname, fileURLToPath } from 'path'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

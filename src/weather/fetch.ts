@@ -2,6 +2,27 @@ import { getWeatherLabel, getWeatherIcon } from './wmo.js'
 import type { WeatherData } from '../types/index.js'
 
 const BASE_URL = 'https://api.open-meteo.com/v1/forecast'
+const GEO_URL = 'https://geocoding-api.open-meteo.com/v1/search'
+
+export interface GeoResult {
+  lat: number
+  lon: number
+  name: string
+}
+
+export async function geocodeCity(city: string): Promise<GeoResult> {
+  const url = `${GEO_URL}?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Geocoding error: ${res.status}`)
+  const data = await res.json() as { results?: Array<{ latitude: number; longitude: number; name: string; country?: string }> }
+  if (!data.results?.length) throw new Error(`Could not find location: "${city}"`)
+  const r = data.results[0]
+  return {
+    lat: r.latitude,
+    lon: r.longitude,
+    name: r.country ? `${r.name}, ${r.country}` : r.name,
+  }
+}
 
 interface OpenMeteoResponse {
   current: {

@@ -43,7 +43,7 @@ export async function generateTryOn(
   const response = await ai.models.generateContent({
     model: IMAGE_GEN_MODEL,
     contents: [{ role: 'user', parts }],
-    config: { responseModalities: ['image'] },
+    config: { responseModalities: ['IMAGE', 'TEXT'] },
   })
 
   const { data } = extractGeminiImage(response)
