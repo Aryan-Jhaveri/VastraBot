@@ -1,0 +1,70 @@
+import { Router } from 'express'
+import multer from 'multer'
+import * as queries from '../../../db/queries.js'
+import { saveImageFromBase64 } from '../../../storage/images.js'
+
+const router = Router()
+const upload = multer({ storage: multer.memoryStorage() })
+
+// GET /api/user-photos
+router.get('/', (_req, res) => {
+  try {
+    const photos = queries.getUserPhotos()
+    res.json(photos)
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+// POST /api/user-photos
+router.post('/', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image provided' })
+    const base64 = req.file.buffer.toString('base64')
+    const { label, isPrimary } = req.body as { label?: string; isPrimary?: string }
+
+    const imageUri = await saveImageFromBase64(base64, 'user')
+
+    // First photo is automatically primary unless specified otherwise
+    const existingPhotos = queries.getUserPhotos()
+    const makePrimary = isPrimary === 'true' || existingPhotos.length === 0
+
+    const photo = queries.insertUserPhoto({
+      imageUri,
+      label: label || undefined,
+      isPrimary: makePrimary ? 1 : 0,
+    })
+
+    // If marking primary, use setPrimaryPhoto to ensure only one is set
+    if (makePrimary) {
+      queries.setPrimaryPhoto(photo.id)
+    }
+
+    res.status(201).json(photo)
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+// PATCH /api/user-photos/:id/primary
+router.patch('/:id/primary', (req, res) => {
+  try {
+    const photo = queries.setPrimaryPhoto(req.params.id)
+    if (!photo) return res.status(404).json({ error: 'Not found' })
+    res.json(photo)
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+// DELETE /api/user-photos/:id
+router.delete('/:id', (req, res) => {
+  try {
+    queries.deleteUserPhoto(req.params.id)
+    res.status(204).send()
+  } catch (err) {
+    res.status(500).json({ error: String(err) })
+  }
+})
+
+export default router
