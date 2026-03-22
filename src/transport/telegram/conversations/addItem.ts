@@ -3,7 +3,7 @@ import { categorizeItem } from '../../../ai/categorize.js'
 import { scanTag } from '../../../ai/scanTag.js'
 import { addItem } from '../../../tools/items.js'
 import { updateItem } from '../../../tools/items.js'
-import { getPhotoBase64 } from '../download.js'
+import { getPhotoUrl, downloadPhotoAsBase64 } from '../download.js'
 import { formatItemClassification, formatItem } from '../format.js'
 import { confirmKeyboard, editFieldKeyboard, categoryKeyboard, scanTagKeyboard } from '../keyboards.js'
 import type { BotContext } from '../context.js'
@@ -21,14 +21,16 @@ export async function addItemConversation(
 
   await ctx.reply('Analyzing... ⏳')
 
-  // Download photo — must be outside conversation.external since it uses ctx
-  const base64 = await conversation.external(() => getPhotoBase64(ctx))
+  // API call (ctx.api.getFile) must be outside external() to avoid replay deadlock
+  const photoUrl = await getPhotoUrl(ctx)
+  const base64 = await conversation.external(() => downloadPhotoAsBase64(photoUrl))
 
   // Categorize with AI
   let classification: ItemClassification
   try {
     classification = await conversation.external(() => categorizeItem(base64))
-  } catch {
+  } catch (err) {
+    console.error('categorizeItem failed:', err)
     await ctx.reply('Could not analyze the photo. Try again with a clearer image.')
     return
   }
@@ -141,7 +143,8 @@ export async function addItemConversation(
   await ctx.reply('Send a photo of the care label.')
   ctx = await conversation.waitFor('message:photo')
 
-  const tagBase64 = await conversation.external(() => getPhotoBase64(ctx))
+  const tagPhotoUrl = await getPhotoUrl(ctx)
+  const tagBase64 = await conversation.external(() => downloadPhotoAsBase64(tagPhotoUrl))
 
   try {
     const tagData = await conversation.external(() => scanTag(tagBase64))

@@ -1,3 +1,4 @@
+import { InputFile } from 'grammy'
 import type { Conversation } from '@grammyjs/conversations'
 import { generateTryOn } from '../../../ai/tryon.js'
 import { listItems } from '../../../tools/items.js'
@@ -81,8 +82,9 @@ export async function tryonConversation(
     const resultPath = await conversation.external(() => generateTryOn(userBase64, itemBase64s))
     const absPath = resolveImagePath(resultPath)
 
-    await ctx.replyWithPhoto({ source: absPath }, { caption: 'Your virtual try-on ✨' })
+    await ctx.replyWithPhoto(new InputFile(absPath), { caption: 'Your virtual try-on ✨' })
   } catch (err) {
+    console.error('Try-on generation failed:', err)
     await ctx.reply('Try-on generation failed. Please try again.')
   }
 }

@@ -13,7 +13,7 @@ export function formatItem(item: Item): string {
   if (colors.length > 1) lines.push(`Colors: ${colors.join(', ')}`)
   if (item.brand) lines.push(`Brand: ${item.brand}`)
   if (item.size) lines.push(`Size: ${item.size}`)
-  if (item.material) lines.push(`Material: ${item.material}`)
+  if (item.material && item.material !== 'null') lines.push(`Material: ${item.material}`)
   if (season.length) lines.push(`Season: ${season.join(', ')}`)
   if (tags.length) lines.push(`Tags: ${tags.join(', ')}`)
   if (item.aiDescription) lines.push(`\n_${item.aiDescription}_`)
@@ -56,9 +56,9 @@ export function formatItemClassification(c: {
   return [
     `*${c.subcategory}* (${c.category})`,
     `Color: ${c.primary_color}`,
-    `Material: ${c.material}`,
+    c.material && c.material !== 'null' ? `Material: ${c.material}` : null,
     `Season: ${c.season.join(', ')}`,
     `Tags: ${c.suggested_tags.join(', ')}`,
     `\n_${c.ai_description}_`,
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 }

@@ -1,7 +1,7 @@
 import type { Conversation } from '@grammyjs/conversations'
 import { saveImageFromBase64 } from '../../../storage/images.js'
 import * as queries from '../../../db/queries.js'
-import { getPhotoBase64 } from '../download.js'
+import { getPhotoUrl, downloadPhotoAsBase64 } from '../download.js'
 import type { BotContext } from '../context.js'
 
 export async function addUserPhotoConversation(
@@ -17,7 +17,8 @@ export async function addUserPhotoConversation(
 
   await ctx.reply('Saving... ⏳')
 
-  const base64 = await conversation.external(() => getPhotoBase64(ctx))
+  const photoUrl = await getPhotoUrl(ctx)
+  const base64 = await conversation.external(() => downloadPhotoAsBase64(photoUrl))
 
   try {
     const imageUri = await conversation.external(() => saveImageFromBase64(base64, 'user'))

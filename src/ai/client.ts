@@ -8,5 +8,5 @@ if (!apiKey) {
 
 export const ai = new GoogleGenAI({ apiKey })
 
-export const VISION_MODEL = 'gemini-2.0-flash'
-export const IMAGE_GEN_MODEL = 'gemini-2.0-flash-preview-image-generation'
+export const VISION_MODEL = 'gemini-flash-latest'
+export const IMAGE_GEN_MODEL = 'gemini-3.1-flash-image-preview'

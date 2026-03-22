@@ -1,14 +1,14 @@
 import 'dotenv/config'
 import { Bot, session } from 'grammy'
 import { conversations, createConversation } from '@grammyjs/conversations'
-import { hydrateFiles } from '@grammyjs/files'
+import { JsonFileStorage } from './storage.js'
 import '../../db/migrate.js'
 import type { BotContext, SessionData } from './context.js'
 import { authGuard } from './middleware.js'
 import { handleStart } from './commands/start.js'
 import { handleCloset, handleClosetCallback } from './commands/closet.js'
 import { handleOutfit } from './commands/outfit.js'
-import { handleWeather, handleLocationMessage } from './commands/weather.js'
+import { handleWeather, handleLocationMessage, handleCityText } from './commands/weather.js'
 import { handleWorn } from './commands/worn.js'
 import { addItemConversation } from './conversations/addItem.js'
 import { addUserPhotoConversation } from './conversations/addUserPhoto.js'
@@ -25,16 +25,19 @@ async function main() {
 
   // ── Plugins ──────────────────────────────────────────────────────────────────
 
-  // File download support
-  bot.api.config.use(hydrateFiles(token!))
-
   // Sessions (in-memory; location persists until bot restart)
   bot.use(session<SessionData, BotContext>({
     initial: (): SessionData => ({}),
   }))
 
-  // Conversations plugin (must come after session)
-  bot.use(conversations())
+  // Conversations plugin with file-based persistence (survives restarts)
+  bot.use(conversations({
+    storage: {
+      type: 'key',
+      adapter: new JsonFileStorage(),
+      getStorageKey: ctx => ctx.chatId?.toString(),
+    },
+  }))
   bot.use(createConversation(addItemConversation, 'addItem'))
   bot.use(createConversation(addUserPhotoConversation, 'addUserPhoto'))
   bot.use(createConversation(tryonConversation, 'tryon'))
@@ -69,9 +72,19 @@ async function main() {
     await ctx.conversation.enter('addItem')
   })
 
-  // ── Location message ─────────────────────────────────────────────────────────
+  // ── Location message (GPS button) ────────────────────────────────────────────
 
   bot.on('message:location', handleLocationMessage)
+
+  // ── City name text (desktop fallback) ────────────────────────────────────────
+
+  bot.on('message:text', async (ctx, next) => {
+    if (ctx.session.awaitingLocation) {
+      await handleCityText(ctx)
+    } else {
+      await next()
+    }
+  })
 
   // ── Callback queries ─────────────────────────────────────────────────────────
 
@@ -99,10 +112,12 @@ async function main() {
   // ── Start ─────────────────────────────────────────────────────────────────────
 
   console.log('Starting Closet bot...')
-  await bot.start()
+  await bot.start({
+    onStart: info => console.log(`Bot @${info.username} is running`),
+  })
 }
 
 main().catch(err => {
-  console.error(err)
+  console.error('Fatal error:', err)
   process.exit(1)
 })

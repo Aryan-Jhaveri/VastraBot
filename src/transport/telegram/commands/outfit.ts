@@ -1,3 +1,4 @@
+import { InputFile } from 'grammy'
 import { listItems } from '../../../tools/items.js'
 import { createOutfit } from '../../../tools/outfits.js'
 import { getCurrentWeather } from '../../../tools/weather.js'
@@ -12,8 +13,9 @@ export async function handleOutfit(ctx: BotContext): Promise<void> {
   const { lat, lon } = ctx.session
 
   if (lat === undefined || lon === undefined) {
+    ctx.session.awaitingLocation = true
     await ctx.reply(
-      'Share your location to get weather-appropriate outfit suggestions:',
+      'Where are you? Type a city name (e.g. "Toronto") or tap Share my location on mobile:',
       {
         reply_markup: {
           keyboard: [[{ text: '📍 Share my location', request_location: true }]],
@@ -75,7 +77,7 @@ export async function handleOutfit(ctx: BotContext): Promise<void> {
       const imagePath = resolveImagePath(item.imageUri)
       try {
         await ctx.replyWithPhoto(
-          { source: imagePath },
+          new InputFile(imagePath),
           { caption: `${item.subcategory ?? item.category} — ${item.primaryColor ?? ''}` },
         )
       } catch {

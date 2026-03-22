@@ -1,6 +1,13 @@
 # My Closet
 
-A personal wardrobe management system. Photograph your clothes, let AI categorize them, get outfit suggestions based on the weather, and try on items virtually.
+A personal wardrobe management system. Photograph your clothes, let AI categorize them, get outfit suggestions based on today's weather, and try on items virtually.
+
+## How it works
+
+1. Send a photo → Gemini AI categorizes it (type, color, brand, season, tags)
+2. Confirm or edit the AI's guess → item saved to your closet
+3. Ask for outfit suggestions → fetches live weather → AI picks matching items
+4. Try on an outfit virtually → Gemini generates a photorealistic image of you wearing the items
 
 ## Architecture
 
@@ -58,6 +65,22 @@ npm run db:generate
 npm run db:migrate
 ```
 
+## Add item flow
+
+```
+Send photo
+  → "Analyzing..." (immediate feedback)
+  → Gemini categorizes: type, color, brand, season, occasion, tags
+  → Show result + [✓ Save] [✎ Edit] [✗ Cancel]
+  → Edit: pick field to change → Category / Color / Brand / Size
+  → Save: compress image + write to DB
+  → Optional: [📷 Scan care label?] → reads washing instructions from tag photo
+```
+
+## Location
+
+`/weather` and `/outfit` ask for your location once and remember it for the session. On mobile, tap the GPS button. On desktop, type a city name (e.g. `Toronto`). The bot geocodes it using Open-Meteo and saves the coordinates.
+
 ## Telegram Commands
 
 | Command | Action |
@@ -77,7 +100,8 @@ npm run db:migrate
 | Component | Package |
 |---|---|
 | Database | `better-sqlite3` + `drizzle-orm` |
-| AI | `@google/genai` (Gemini 2.0) |
+| AI (vision) | `@google/genai` — `gemini-flash-latest` |
+| AI (image gen) | `@google/genai` — `gemini-3.1-flash-image-preview` |
 | Image compression | `sharp` |
 | Telegram bot | `grammy` |
 | Multi-step flows | `@grammyjs/conversations` |

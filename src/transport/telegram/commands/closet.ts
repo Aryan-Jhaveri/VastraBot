@@ -1,3 +1,4 @@
+import { InputFile } from 'grammy'
 import { listItems } from '../../../tools/items.js'
 import { resolveImagePath } from '../../../storage/images.js'
 import { formatItem } from '../format.js'
@@ -56,7 +57,7 @@ async function sendClosetPage(
   for (const item of slice) {
     const imagePath = resolveImagePath(item.imageUri)
     try {
-      await ctx.replyWithPhoto({ source: imagePath }, {
+      await ctx.replyWithPhoto(new InputFile(imagePath), {
         caption: formatItem(item),
         parse_mode: 'Markdown',
       })
