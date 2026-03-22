@@ -1,0 +1,29 @@
+{
+  "name": "@closet/core",
+  "version": "0.1.0",
+  "description": "Personal wardrobe management — transport-agnostic core",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@google/genai": "latest",
+    "better-sqlite3": "latest",
+    "drizzle-orm": "latest",
+    "nanoid": "latest",
+    "sharp": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "latest",
+    "@types/node": "latest",
+    "drizzle-kit": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}
