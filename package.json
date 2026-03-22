@@ -10,7 +10,7 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "test": "vitest run",
     "telegram": "tsx src/transport/telegram/index.ts",
-    "web:dev": "concurrently \"tsx watch src/transport/web/server.ts\" \"vite --config src/transport/web/app/vite.config.ts\"",
+    "web:dev": "concurrently \"tsx watch src/transport/web/server.ts\" \"npm run dev --prefix src/transport/web/app\"",
     "web:build": "cd src/transport/web/app && npm run build",
     "web": "NODE_ENV=production tsx src/transport/web/server.ts"
   },
