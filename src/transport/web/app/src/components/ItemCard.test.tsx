@@ -27,7 +27,7 @@ describe('ItemCard', () => {
   it('renders correct image src', () => {
     render(<ItemCard item={mockItem} />)
     const img = screen.getByRole('img')
-    expect(img).toHaveAttribute('src', '/images/images/items/test.jpg')
+    expect(img).toHaveAttribute('src', '/images/items/test.jpg')
   })
 
   it('shows subcategory label', () => {

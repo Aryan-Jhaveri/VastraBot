@@ -20,7 +20,7 @@ export function ItemCard({ item, onClick, selected, selectable }: ItemCardProps)
     >
       <div className="aspect-[4/5] overflow-hidden bg-stone-50">
         <img
-          src={`/images/${item.imageUri}`}
+          src={`/${item.imageUri}`}
           alt={item.subcategory ?? item.category}
           className="h-full w-full object-cover"
           loading="lazy"
