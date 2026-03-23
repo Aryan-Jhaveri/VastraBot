@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { markWorn, deleteItem, updateItem } from '../api/items'
 import type { Item } from '../api/items'
 import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
 
 interface ItemDetailProps {
   item: Item
@@ -26,33 +25,21 @@ export function ItemDetail({ item, onClose, onChanged }: ItemDetailProps) {
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const colors = parseJSON<string[]>(item.colors, [])
   const careInstructions = parseJSON<string[]>(item.careInstructions, [])
   const seasons = parseJSON<string[]>(item.season, [])
   const tags = parseJSON<string[]>(item.tags, [])
 
   async function handleMarkWorn() {
     setMarking(true)
-    try {
-      await markWorn(item.id)
-      onChanged()
-    } catch (err) {
-      setError(String(err))
-    } finally {
-      setMarking(false)
-    }
+    try { await markWorn(item.id); onChanged() }
+    catch (err) { setError(String(err)) }
+    finally { setMarking(false) }
   }
 
   async function handleDelete() {
     setDeleting(true)
-    try {
-      await deleteItem(item.id)
-      onClose()
-      onChanged()
-    } catch (err) {
-      setError(String(err))
-      setDeleting(false)
-    }
+    try { await deleteItem(item.id); onClose(); onChanged() }
+    catch (err) { setError(String(err)); setDeleting(false) }
   }
 
   async function handleSaveEdit() {
@@ -61,129 +48,142 @@ export function ItemDetail({ item, onClose, onChanged }: ItemDetailProps) {
       await updateItem(item.id, { brand: brand || undefined, size: size || undefined })
       onChanged()
       setEditing(false)
-    } catch (err) {
-      setError(String(err))
-    } finally {
-      setSaving(false)
-    }
+    } catch (err) { setError(String(err)) }
+    finally { setSaving(false) }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-stone-100">
-          <h2 className="font-semibold text-stone-900 capitalize">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
+      <div className="bg-white border-2 border-[#111] w-full max-w-md max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b-2 border-[#111]">
+          <button onClick={onClose} className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:text-[#888]">←</button>
+          <span className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] capitalize">
             {item.subcategory ?? item.category}
-          </h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 text-xl leading-none">×</button>
+          </span>
+          <button
+            onClick={() => setEditing(e => !e)}
+            className="border-2 border-[#111] px-2 py-0.5 text-[8px] font-bold font-mono uppercase tracking-[0.06em] hover:bg-[#f0f0f0]"
+          >
+            {editing ? 'Done' : 'Edit'}
+          </button>
         </div>
 
         <div className="flex flex-col gap-4 p-4">
           {error && (
-            <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">{error}</div>
+            <div className="border-2 border-[#111] bg-[#f0f0f0] px-3 py-2 text-[10px] font-mono uppercase tracking-[0.06em]">
+              {error}
+            </div>
           )}
 
-          <div className="aspect-[4/5] overflow-hidden rounded-xl bg-stone-50">
+          {/* Image */}
+          <div className="aspect-[4/5] overflow-hidden border-2 border-[#111]">
             <img
-              src={`/images/${item.imageUri}`}
+              src={`/${item.imageUri}`}
               alt={item.subcategory ?? item.category}
               className="h-full w-full object-cover"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div className="text-stone-400">Category</div>
-            <div className="capitalize text-stone-700">{item.category}</div>
-            {item.primaryColor && (
-              <>
-                <div className="text-stone-400">Color</div>
-                <div className="capitalize text-stone-700">{item.primaryColor}</div>
-              </>
-            )}
-            {item.material && (
-              <>
-                <div className="text-stone-400">Material</div>
-                <div className="text-stone-700">{item.material}</div>
-              </>
-            )}
-            {seasons.length > 0 && (
-              <>
-                <div className="text-stone-400">Season</div>
-                <div className="capitalize text-stone-700">{seasons.join(', ')}</div>
-              </>
-            )}
-            <div className="text-stone-400">Worn</div>
-            <div className="text-stone-700">{item.timesWorn}×</div>
+          {/* Name + category */}
+          <div>
+            <h2 className="font-bold text-base capitalize leading-tight">
+              {item.primaryColor ? `${item.primaryColor} ` : ''}{item.subcategory ?? item.category}
+            </h2>
+            <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] mt-0.5">
+              {item.category}{item.subcategory ? ` — ${item.subcategory}` : ''}
+            </p>
           </div>
 
-          {!editing && (item.brand || item.size) && (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              {item.brand && (
-                <>
-                  <div className="text-stone-400">Brand</div>
-                  <div className="text-stone-700">{item.brand}</div>
-                </>
-              )}
-              {item.size && (
-                <>
-                  <div className="text-stone-400">Size</div>
-                  <div className="text-stone-700">{item.size}</div>
-                </>
-              )}
-            </div>
-          )}
+          {/* Attribute badges */}
+          <div className="flex flex-wrap gap-1.5">
+            {[item.primaryColor, item.material, item.brand, item.size, ...seasons]
+              .filter(Boolean)
+              .map((val, i) => (
+                <span key={i} className="border-2 border-[#111] px-2 py-0.5 text-[8px] font-bold font-mono uppercase tracking-[0.04em]">
+                  {val}
+                </span>
+              ))
+            }
+          </div>
 
+          {/* Edit fields */}
           {editing && (
-            <div className="flex flex-col gap-3">
-              <Input label="Brand" value={brand} onChange={e => setBrand(e.target.value)} placeholder="e.g. Nike" />
-              <Input label="Size" value={size} onChange={e => setSize(e.target.value)} placeholder="e.g. M" />
-              <div className="flex gap-2">
+            <div className="flex flex-col gap-3 border-2 border-[#111] p-3">
+              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.08em]">Edit</p>
+              {[
+                { label: 'Brand', value: brand, set: setBrand, placeholder: 'e.g. Nike' },
+                { label: 'Size', value: size, set: setSize, placeholder: 'e.g. M' },
+              ].map(({ label, value, set, placeholder }) => (
+                <div key={label} className="flex flex-col gap-1">
+                  <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">{label}</label>
+                  <input
+                    value={value}
+                    onChange={e => set(e.target.value)}
+                    placeholder={placeholder}
+                    className="border-2 border-[#111] px-3 py-1.5 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
+                  />
+                </div>
+              ))}
+              <div className="flex gap-2 pt-1">
                 <Button variant="ghost" onClick={() => setEditing(false)} className="flex-1">Cancel</Button>
                 <Button onClick={handleSaveEdit} loading={saving} className="flex-1">Save</Button>
               </div>
             </div>
           )}
 
+          {/* Care instructions */}
           {careInstructions.length > 0 && (
             <div>
-              <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Care</p>
-              <ul className="text-sm text-stone-600 space-y-0.5">
-                {careInstructions.map((c, i) => <li key={i}>• {c}</li>)}
+              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Care</p>
+              <ul className="space-y-0.5">
+                {careInstructions.map((c, i) => (
+                  <li key={i} className="text-[10px] font-mono text-[#555]">— {c}</li>
+                ))}
               </ul>
             </div>
           )}
 
+          {/* Tags */}
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {tags.map(tag => (
-                <span key={tag} className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-500">{tag}</span>
+                <span key={tag} className="border border-[#111] px-2 py-0.5 text-[8px] font-mono uppercase tracking-[0.04em]">{tag}</span>
               ))}
             </div>
           )}
 
-          <div className="flex flex-col gap-2 pt-2 border-t border-stone-100">
+          {/* Worn count */}
+          <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em]">
+            Worn {item.timesWorn}×{item.lastWornAt ? ` — last ${Math.floor((Date.now() - item.lastWornAt) / 86400000)} days ago` : ''}
+          </p>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2 border-t-2 border-[#111] pt-3">
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={handleMarkWorn} loading={marking} className="flex-1">
+              <Button variant="primary" onClick={handleMarkWorn} loading={marking} className="flex-1">
                 Mark Worn
               </Button>
-              <Button variant="secondary" onClick={() => { onClose(); navigate('/tryon', { state: { itemId: item.id } }) }} className="flex-1">
+              <Button
+                variant="secondary"
+                onClick={() => { onClose(); navigate('/tryon', { state: { itemId: item.id } }) }}
+                className="flex-1"
+              >
                 Try On
               </Button>
             </div>
-            {!editing && (
-              <Button variant="ghost" onClick={() => setEditing(true)} className="w-full">
-                Edit
-              </Button>
-            )}
             {confirmDelete ? (
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={() => setConfirmDelete(false)} className="flex-1">Keep it</Button>
-                <Button variant="danger" onClick={handleDelete} loading={deleting} className="flex-1">Delete</Button>
+                <Button variant="secondary" onClick={handleDelete} loading={deleting} className="flex-1 !border-red-500 !text-red-500 hover:!bg-red-50">Delete</Button>
               </div>
             ) : (
-              <Button variant="ghost" onClick={() => setConfirmDelete(true)} className="w-full text-red-500">
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="w-full text-[9px] font-mono text-[#888] uppercase tracking-[0.08em] py-2 hover:text-[#111]"
+              >
                 Delete
-              </Button>
+              </button>
             )}
           </div>
         </div>

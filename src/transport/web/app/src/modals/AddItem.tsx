@@ -2,7 +2,6 @@ import { useState, useRef, type DragEvent, type ChangeEvent } from 'react'
 import { analyzeItem, createItem } from '../api/items'
 import type { ItemClassification } from '../api/items'
 import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 
 interface AddItemProps {
@@ -22,14 +21,13 @@ export function AddItem({ onClose, onSaved }: AddItemProps) {
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Editable fields — pre-filled by AI, fully free-form
   const [category, setCategory] = useState('')
   const [subcategory, setSubcategory] = useState('')
   const [primaryColor, setPrimaryColor] = useState('')
   const [brand, setBrand] = useState('')
   const [size, setSize] = useState('')
-  const [season, setSeason] = useState('')   // comma-separated, e.g. "spring, summer"
-  const [tags, setTags] = useState('')       // comma-separated
+  const [season, setSeason] = useState('')
+  const [tags, setTags] = useState('')
 
   function setFileAndPreview(f: File) {
     setFile(f)
@@ -97,116 +95,134 @@ export function AddItem({ onClose, onSaved }: AddItemProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-stone-100">
-          <h2 className="font-semibold text-stone-900">Add Item</h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 text-xl leading-none">×</button>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
+      <div className="bg-white border-2 border-[#111] w-full max-w-md max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b-2 border-[#111]">
+          <button onClick={onClose} className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:text-[#888]">← Back</button>
+          <span className="text-[9px] font-bold font-mono uppercase tracking-[0.08em]">Add Item</span>
+          <div className="w-10" />
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex gap-1 px-4 pt-3">
+          {([1, 2, 3] as Step[]).map(s => (
+            <div key={s} className={`h-[3px] flex-1 transition-colors ${step >= s ? 'bg-[#111]' : 'bg-[#e0e0e0]'}`} />
+          ))}
         </div>
 
         <div className="p-4 flex flex-col gap-4">
           {error && (
-            <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">
+            <div className="border-2 border-[#111] bg-[#f0f0f0] px-3 py-2 text-[10px] font-mono uppercase tracking-[0.06em]">
               {error}
             </div>
           )}
 
           {/* Step 1: Upload */}
           {step === 1 && (
-            <div
-              onDrop={onDrop}
-              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center gap-3 cursor-pointer transition-colors ${
-                dragOver ? 'border-stone-400 bg-stone-50' : 'border-stone-200 hover:border-stone-300'
-              }`}
-            >
-              <span className="text-4xl">📷</span>
-              <p className="text-sm font-medium text-stone-700">Drop a photo or tap to choose</p>
-              <p className="text-xs text-stone-400">JPG, PNG, WebP</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={onInputChange}
-              />
-            </div>
+            <>
+              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em]">Step 1 — Photo</p>
+              <div
+                onDrop={onDrop}
+                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed border-[#111] p-10 flex flex-col items-center gap-3 cursor-pointer transition-colors ${
+                  dragOver ? 'bg-[#f0f0f0]' : 'hover:bg-[#fafafa]'
+                }`}
+              >
+                <div className="w-8 h-8 border-2 border-[#111] flex items-center justify-center text-lg font-bold">+</div>
+                <p className="text-[9px] font-mono uppercase tracking-[0.1em] text-[#888]">Camera or Gallery</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={onInputChange}
+                />
+              </div>
+              <div className="flex gap-2">
+                <label className="flex-1 bg-[#111] text-white border-2 border-[#111] py-2.5 text-[10px] font-bold font-mono uppercase tracking-[0.08em] text-center cursor-pointer hover:bg-[#333] transition-colors">
+                  Camera
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={onInputChange} />
+                </label>
+                <label className="flex-1 bg-white text-[#111] border-2 border-[#111] py-2.5 text-[10px] font-bold font-mono uppercase tracking-[0.08em] text-center cursor-pointer hover:bg-[#f0f0f0] transition-colors">
+                  Gallery
+                  <input type="file" accept="image/*" className="hidden" onChange={onInputChange} />
+                </label>
+              </div>
+            </>
           )}
 
           {/* Step 2: Analyzing */}
           {step === 2 && (
-            <div className="flex flex-col items-center gap-4 py-6">
+            <>
+              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em]">Step 2 — Analyzing</p>
               {preview && (
-                <img src={preview} alt="Preview" className="h-40 w-32 object-cover rounded-xl" />
+                <div className="flex justify-center">
+                  <img src={preview} alt="Preview" className="h-36 w-28 object-cover border-2 border-[#111]" />
+                </div>
               )}
-              <div className="flex items-center gap-2 text-stone-500">
-                <Spinner size={20} />
-                <span className="text-sm">Analyzing your item…</span>
+              <div className="border-2 border-[#111] p-3">
+                <p className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] mb-2">AI Processing</p>
+                <div className="h-[3px] bg-[#e8e8e8] mb-1.5 overflow-hidden">
+                  <div className="h-[3px] w-3/5 bg-[#111] animate-pulse" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Spinner size={12} />
+                  <p className="text-[8px] font-mono text-[#888]">Detecting category + color</p>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
-          {/* Step 3: Confirm/Edit */}
+          {/* Step 3: Confirm */}
           {step === 3 && preview && (
             <>
-              <div className="flex gap-4">
-                <img src={preview} alt="Preview" className="h-32 w-24 shrink-0 object-cover rounded-xl border border-stone-100" />
-                <div className="flex flex-col gap-3 flex-1">
-                  <Input
-                    label="Category"
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    placeholder="e.g. tops"
-                  />
-                  <Input
-                    label="Subcategory"
-                    value={subcategory}
-                    onChange={e => setSubcategory(e.target.value)}
-                    placeholder="e.g. T-shirt"
-                  />
+              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em]">Step 3 — Confirm</p>
+              <div className="flex gap-3">
+                <img src={preview} alt="Preview" className="h-[72px] w-14 shrink-0 object-cover border-2 border-[#111]" />
+                <div className="flex-1 flex flex-col gap-1.5">
+                  {[
+                    { label: 'Cat.', value: category, set: setCategory },
+                    { label: 'Type', value: subcategory, set: setSubcategory },
+                    { label: 'Color', value: primaryColor, set: setPrimaryColor },
+                  ].map(({ label, value, set }) => (
+                    <div key={label} className="flex items-center border-b border-[#f0f0f0] pb-1">
+                      <span className="text-[8px] font-mono text-[#888] uppercase w-10 shrink-0">{label}</span>
+                      <input
+                        value={value}
+                        onChange={e => set(e.target.value)}
+                        className="flex-1 text-[9px] font-bold font-mono outline-none bg-transparent"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Primary Color"
-                  value={primaryColor}
-                  onChange={e => setPrimaryColor(e.target.value)}
-                  placeholder="e.g. navy"
-                />
-                <Input
-                  label="Brand"
-                  value={brand}
-                  onChange={e => setBrand(e.target.value)}
-                  placeholder="e.g. Levi's"
-                />
-                <Input
-                  label="Size"
-                  value={size}
-                  onChange={e => setSize(e.target.value)}
-                  placeholder="e.g. M, 32"
-                />
-                <Input
-                  label="Season"
-                  value={season}
-                  onChange={e => setSeason(e.target.value)}
-                  placeholder="e.g. spring, summer"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Brand', value: brand, set: setBrand, placeholder: 'e.g. Levi\'s' },
+                  { label: 'Size', value: size, set: setSize, placeholder: 'e.g. M' },
+                  { label: 'Season', value: season, set: setSeason, placeholder: 'spring, summer' },
+                  { label: 'Tags', value: tags, set: setTags, placeholder: 'casual, office' },
+                ].map(({ label, value, set, placeholder }) => (
+                  <div key={label} className="flex flex-col gap-0.5">
+                    <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">{label}</label>
+                    <input
+                      value={value}
+                      onChange={e => set(e.target.value)}
+                      placeholder={placeholder}
+                      className="border-2 border-[#111] px-2 py-1.5 text-[10px] font-mono outline-none focus:bg-[#f0f0f0]"
+                    />
+                  </div>
+                ))}
               </div>
 
-              <Input
-                label="Tags"
-                value={tags}
-                onChange={e => setTags(e.target.value)}
-                placeholder="e.g. casual, office (comma-separated)"
-              />
-
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-1">
                 <Button variant="ghost" onClick={onClose} className="flex-1">Cancel</Button>
-                <Button onClick={handleSave} loading={saving} className="flex-1">Save</Button>
+                <Button onClick={handleSave} loading={saving} className="flex-1">Save Item</Button>
               </div>
             </>
           )}

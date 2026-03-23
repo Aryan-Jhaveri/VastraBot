@@ -8,6 +8,8 @@
         - Try On page needs to have delete photo button
         - Remove password functionality
         - When a card is opened, the garment photo is not visible.
+        - To close a card, it a small cross in the corner. It'd be better to close a card when a background click happens. 
+
 
     - [ ] : Data Schema
         - Each shirt card, needs to show it's respective label photo stored. There needs to be upload label space in the card if a label photo is not saved

@@ -15,7 +15,7 @@ describe('CategoryFilter', () => {
   it('highlights the active category', () => {
     render(<CategoryFilter categories={categories} value="tops" onChange={() => {}} />)
     const topsBtn = screen.getByText('tops')
-    expect(topsBtn.className).toContain('bg-stone-900')
+    expect(topsBtn.className).toContain('bg-[#111]')
   })
 
   it('calls onChange with empty string when All clicked', () => {

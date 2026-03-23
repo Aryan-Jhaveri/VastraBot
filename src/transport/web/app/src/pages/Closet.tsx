@@ -4,7 +4,6 @@ import { ItemCard } from '../components/ItemCard'
 import { CategoryFilter } from '../components/CategoryFilter'
 import { AddItem } from '../modals/AddItem'
 import { ItemDetail } from '../modals/ItemDetail'
-import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import type { Item } from '../api/items'
 
@@ -18,7 +17,6 @@ export function Closet() {
 
   const { items, total, loading, refetch } = useItems({ category: category || undefined, page, limit: PAGE_SIZE })
 
-  // Derive distinct categories from ALL items (no filter) for the chip bar
   const { items: allItems } = useItems({ limit: 1000 })
   const categories = useMemo(
     () => [...new Set(allItems.map(i => i.category))].sort(),
@@ -34,11 +32,18 @@ export function Closet() {
 
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
-      <div className="flex items-center justify-between">
-        <h1 className="font-semibold text-stone-900">
-          {total} {total === 1 ? 'item' : 'items'}
-        </h1>
-        <Button onClick={() => setShowAdd(true)}>+ Add</Button>
+      {/* Header */}
+      <div className="flex items-end justify-between border-b-2 border-[#111] pb-2">
+        <div>
+          <h1 className="text-[22px] font-bold leading-none">Closet</h1>
+          <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] mt-0.5">{total} {total === 1 ? 'item' : 'items'}</p>
+        </div>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="bg-[#111] text-white border-2 border-[#111] px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:bg-[#333] transition-colors"
+        >
+          + Add
+        </button>
       </div>
 
       <CategoryFilter categories={categories} value={category} onChange={handleCategoryChange} />
@@ -50,22 +55,34 @@ export function Closet() {
       )}
 
       {!loading && items.length === 0 && (
-        <p className="text-sm text-stone-400 text-center py-10">
-          {category ? `No ${category} in your closet yet.` : 'Your closet is empty. Add your first item!'}
+        <p className="text-[10px] font-mono text-[#888] uppercase tracking-[0.06em] text-center py-10">
+          {category ? `No ${category} yet.` : 'Your closet is empty. Add your first item!'}
         </p>
       )}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-[3px]">
         {items.map(item => (
           <ItemCard key={item.id} item={item} onClick={() => setSelected(item)} />
         ))}
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 pt-2">
-          <Button variant="ghost" onClick={() => setPage(p => p - 1)} disabled={page === 1}>← Prev</Button>
-          <span className="text-sm text-stone-500">{page} / {totalPages}</span>
-          <Button variant="ghost" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>Next →</Button>
+        <div className="flex items-center justify-center gap-4 border-t-2 border-[#111] pt-3">
+          <button
+            onClick={() => setPage(p => p - 1)}
+            disabled={page === 1}
+            className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] disabled:opacity-30 hover:text-[#888]"
+          >
+            ← Prev
+          </button>
+          <span className="text-[9px] font-mono text-[#888]">{page} / {totalPages}</span>
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={page === totalPages}
+            className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] disabled:opacity-30 hover:text-[#888]"
+          >
+            Next →
+          </button>
         </div>
       )}
 

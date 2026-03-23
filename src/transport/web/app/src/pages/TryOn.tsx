@@ -45,7 +45,6 @@ export function TryOn() {
       fetchItems({ limit: 100 })
         .then(res => {
           setItems(res.items)
-          // Pre-select item if navigated from ItemDetail
           if (routerState?.itemId) {
             setSelectedItemIds(new Set([routerState.itemId]))
           }
@@ -104,64 +103,65 @@ export function TryOn() {
 
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
-      <h1 className="font-semibold text-stone-900">Virtual Try-On</h1>
+      {/* Header */}
+      <h1 className="text-[22px] font-bold leading-tight whitespace-pre-line">{"Try\nOn."}</h1>
 
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">{error}</div>
+        <div className="border-2 border-[#111] bg-[#f0f0f0] px-3 py-2 text-[10px] font-mono text-[#111] uppercase tracking-[0.06em]">
+          {error}
+        </div>
       )}
 
       {/* Step 1: Pick reference photo */}
       {step === 'pick-photo' && (
         <>
-          <p className="text-sm text-stone-500">Choose a reference photo of yourself.</p>
+          <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em]">Your photo</p>
 
           {loadingPhotos ? (
             <div className="flex justify-center py-8"><Spinner /></div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               {photos.map(photo => (
                 <button
                   key={photo.id}
                   onClick={() => setSelectedPhotoId(photo.id)}
-                  className={`relative aspect-[3/4] overflow-hidden rounded-2xl border-2 transition-all ${
+                  className={`relative shrink-0 w-[56px] h-[72px] overflow-hidden border-2 transition-all ${
                     selectedPhotoId === photo.id
-                      ? 'border-stone-900 ring-2 ring-stone-900'
-                      : 'border-stone-100'
+                      ? 'border-[#111] ring-[3px] ring-[#111] ring-offset-[-3px]'
+                      : 'border-[#111]'
                   }`}
                 >
-                  <img src={`/images/${photo.imageUri}`} alt="You" className="w-full h-full object-cover" />
+                  <img src={`/${photo.imageUri}`} alt="You" className="w-full h-full object-cover" />
                 </button>
               ))}
-              <label className={`aspect-[3/4] flex flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-stone-200 cursor-pointer hover:border-stone-300 ${uploadingPhoto ? 'opacity-50' : ''}`}>
-                {uploadingPhoto ? <Spinner size={20} /> : <span className="text-2xl">+</span>}
-                <span className="text-xs text-stone-400">Add photo</span>
+              <label className={`shrink-0 w-[56px] h-[72px] flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#888] cursor-pointer hover:border-[#111] transition-colors ${uploadingPhoto ? 'opacity-50' : ''}`}>
+                {uploadingPhoto ? <Spinner size={20} /> : <span className="text-xl font-bold text-[#888]">+</span>}
+                <span className="text-[7px] font-mono text-[#888] uppercase">Add</span>
                 <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleAddPhoto} disabled={uploadingPhoto} />
               </label>
             </div>
           )}
 
-          <Button
-            onClick={() => setStep('pick-items')}
-            disabled={!selectedPhotoId}
-            className="w-full"
-          >
-            Choose Items →
-          </Button>
+          <div className="border-t-2 border-[#111] pt-3">
+            <Button onClick={() => setStep('pick-items')} disabled={!selectedPhotoId} className="w-full">
+              Select Items →
+            </Button>
+          </div>
         </>
       )}
 
       {/* Step 2: Pick items */}
       {step === 'pick-items' && (
         <>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-stone-500">Select items to try on.</p>
-            <button onClick={() => setStep('pick-photo')} className="text-sm text-stone-400 hover:text-stone-600">← Back</button>
+          <div className="flex items-center justify-between border-b-2 border-[#111] pb-2">
+            <p className="text-[9px] font-mono uppercase tracking-[0.06em]">Select items</p>
+            <button onClick={() => setStep('pick-photo')} className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] hover:text-[#111]">← Back</button>
           </div>
 
           {loadingItems ? (
             <div className="flex justify-center py-8"><Spinner /></div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-[3px]">
               {items.map(item => (
                 <ItemCard
                   key={item.id}
@@ -174,13 +174,11 @@ export function TryOn() {
             </div>
           )}
 
-          <Button
-            onClick={handleGenerate}
-            disabled={selectedItemIds.size === 0}
-            className="w-full"
-          >
-            Generate Try-On ({selectedItemIds.size} item{selectedItemIds.size !== 1 ? 's' : ''})
-          </Button>
+          <div className="border-t-2 border-[#111] pt-3">
+            <Button onClick={handleGenerate} disabled={selectedItemIds.size === 0} className="w-full">
+              Generate Preview ({selectedItemIds.size} item{selectedItemIds.size !== 1 ? 's' : ''})
+            </Button>
+          </div>
         </>
       )}
 
@@ -190,14 +188,14 @@ export function TryOn() {
           {generating && (
             <div className="flex flex-col items-center gap-4 py-10">
               <Spinner size={40} />
-              <p className="text-sm text-stone-500">Generating your look…</p>
+              <p className="text-[10px] font-mono text-[#888] uppercase tracking-[0.08em]">Generating your look…</p>
             </div>
           )}
 
           {resultUri && !generating && (
             <>
-              <div className="overflow-hidden rounded-2xl bg-stone-50">
-                <img src={`/images/${resultUri}`} alt="Try-on result" className="w-full object-contain" />
+              <div className="border-2 border-[#111] overflow-hidden">
+                <img src={`/${resultUri}`} alt="Try-on result" className="w-full object-contain" />
               </div>
               <Button onClick={reset} variant="secondary" className="w-full">
                 Try Again

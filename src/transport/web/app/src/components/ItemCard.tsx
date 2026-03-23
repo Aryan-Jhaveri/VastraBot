@@ -1,5 +1,4 @@
 import type { Item } from '../api/items'
-import { Badge } from './ui/Badge'
 
 interface ItemCardProps {
   item: Item
@@ -12,13 +11,11 @@ export function ItemCard({ item, onClick, selected, selectable }: ItemCardProps)
   return (
     <button
       onClick={onClick}
-      className={`relative overflow-hidden rounded-2xl border text-left transition-all ${
-        selected
-          ? 'border-stone-900 ring-2 ring-stone-900'
-          : 'border-stone-100 hover:border-stone-300'
+      className={`relative overflow-hidden border-2 text-left transition-all ${
+        selected ? 'border-[#111] ring-2 ring-[#111] ring-offset-1' : 'border-[#111]'
       } bg-white`}
     >
-      <div className="aspect-[4/5] overflow-hidden bg-stone-50">
+      <div className="aspect-[4/5] overflow-hidden bg-[#f0f0f0] border-b-2 border-[#111]">
         <img
           src={`/${item.imageUri}`}
           alt={item.subcategory ?? item.category}
@@ -26,17 +23,17 @@ export function ItemCard({ item, onClick, selected, selectable }: ItemCardProps)
           loading="lazy"
         />
       </div>
-      <div className="p-2">
-        <p className="truncate text-xs font-medium capitalize text-stone-800">
+      <div className="p-1.5">
+        <p className="truncate text-[8px] font-bold font-mono uppercase tracking-[0.04em] text-[#111]">
           {item.subcategory ?? item.category}
         </p>
         {item.primaryColor && (
-          <p className="truncate text-xs text-stone-400 capitalize">{item.primaryColor}</p>
+          <p className="truncate text-[7px] font-mono text-[#888] capitalize">{item.primaryColor}</p>
         )}
       </div>
       {selectable && selected && (
-        <div className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-stone-900">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <div className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#111]">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
             <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>

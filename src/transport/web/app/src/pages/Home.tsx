@@ -7,6 +7,19 @@ import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { createOutfit } from '../api/outfits'
 
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good\nmorning.'
+  if (h < 17) return 'Good\nafternoon.'
+  return 'Good\nevening.'
+}
+
+function getDateStr() {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'short', day: 'numeric', month: 'short',
+  }).toUpperCase()
+}
+
 export function Home() {
   const { location, loading: locLoading, geocode, requestBrowserLocation } = useLocation()
   const { result, loading: outfitLoading, suggest } = useOutfits()
@@ -55,34 +68,58 @@ export function Home() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-1">
+        <h1 className="text-[22px] font-bold leading-tight whitespace-pre-line">{getGreeting()}</h1>
+        <div className="text-right mt-1">
+          <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em]">{getDateStr()}</p>
+        </div>
+      </div>
+
+      {/* Weather */}
       <WeatherCard
         weather={result?.weather}
         loading={outfitLoading}
         locationName={location?.name}
       />
 
+      {/* City input */}
       <form onSubmit={handleGeocode} className="flex gap-2">
         <input
           value={cityInput}
           onChange={e => setCityInput(e.target.value)}
-          placeholder="Enter a city…"
-          className="flex-1 rounded-xl border border-stone-200 px-3 py-2 text-sm outline-none focus:border-stone-400"
+          placeholder="Enter city…"
+          className="flex-1 border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
         />
         <Button type="submit" variant="secondary" loading={locLoading}>Go</Button>
-        <Button type="button" variant="ghost" onClick={handleGPS} title="Use my location">📍</Button>
+        <button
+          type="button"
+          onClick={handleGPS}
+          title="Use my location"
+          className="border-2 border-[#111] px-3 py-2 text-sm hover:bg-[#f0f0f0] transition-colors"
+        >
+          📍
+        </button>
       </form>
 
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-stone-900">Today's Outfit</h2>
+      {/* Outfit section header */}
+      <div className="flex items-center justify-between border-b-2 border-[#111] pb-2">
+        <span className="text-[10px] font-bold font-mono uppercase tracking-[0.1em]">Today's Outfit</span>
         {location && (
-          <Button variant="ghost" onClick={handleRefresh} loading={outfitLoading}>
-            Refresh
-          </Button>
+          <button
+            onClick={handleRefresh}
+            disabled={outfitLoading}
+            className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] hover:text-[#111] disabled:opacity-40"
+          >
+            {outfitLoading ? 'Loading…' : 'Refresh'}
+          </button>
         )}
       </div>
 
       {!location && !outfitLoading && (
-        <p className="text-sm text-stone-400 text-center py-8">Set a location to get outfit suggestions.</p>
+        <p className="text-[10px] font-mono text-[#888] uppercase tracking-[0.06em] text-center py-6">
+          Set a location to get outfit suggestions.
+        </p>
       )}
 
       {outfitLoading && !result && (
@@ -91,18 +128,18 @@ export function Home() {
         </div>
       )}
 
-      {result?.suggestions.map(s => (
+      {result?.suggestions.map((s, i) => (
         <OutfitCard
           key={s.name}
-          suggestion={s}
+          suggestion={{ ...s, name: s.name || `Outfit #${String(i + 1).padStart(2, '0')}` }}
           onSave={savedIds.has(s.name) ? undefined : () => handleSave(s)}
           saving={savingId === s.name}
         />
       ))}
 
       {result && result.suggestions.length === 0 && (
-        <p className="text-sm text-stone-400 text-center py-8">
-          Add more items to your closet to get suggestions.
+        <p className="text-[10px] font-mono text-[#888] uppercase tracking-[0.06em] text-center py-6">
+          Add more items to get suggestions.
         </p>
       )}
     </div>

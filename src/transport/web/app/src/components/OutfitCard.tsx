@@ -1,6 +1,5 @@
 import type { OutfitSuggestion } from '../api/outfits'
 import { Button } from './ui/Button'
-import { Card } from './ui/Card'
 
 interface OutfitCardProps {
   suggestion: OutfitSuggestion
@@ -10,32 +9,36 @@ interface OutfitCardProps {
 
 export function OutfitCard({ suggestion, onSave, saving }: OutfitCardProps) {
   return (
-    <Card className="p-4 flex flex-col gap-3">
-      <div>
-        <h3 className="font-semibold text-stone-900">{suggestion.name}</h3>
-        <p className="text-sm text-stone-500 mt-1">{suggestion.reasoning}</p>
+    <div className="border-2 border-[#111] p-3 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="font-bold text-[#111] text-sm leading-tight">{suggestion.name}</h3>
         {suggestion.occasion && (
-          <span className="inline-block mt-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-500 capitalize">
+          <span className="shrink-0 border-2 border-[#111] px-1.5 py-0.5 text-[7px] font-bold font-mono uppercase tracking-[0.06em]">
             {suggestion.occasion}
           </span>
         )}
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {suggestion.items.map(item => (
-          <div key={item.id} className="shrink-0 w-16 h-20 rounded-xl overflow-hidden bg-stone-50 border border-stone-100">
+          <div key={item.id} className="shrink-0 w-14 h-[72px] border-2 border-[#111] overflow-hidden">
             <img
-              src={`/images/${item.imageUri}`}
+              src={`/${item.imageUri}`}
               alt={item.subcategory ?? item.category}
               className="w-full h-full object-cover"
             />
           </div>
         ))}
       </div>
+      {suggestion.reasoning && (
+        <p className="text-[9px] text-[#888] font-mono border-l-2 border-[#e0e0e0] pl-2 leading-relaxed">
+          {suggestion.reasoning}
+        </p>
+      )}
       {onSave && (
         <Button variant="secondary" onClick={onSave} loading={saving} className="self-start">
           Save outfit
         </Button>
       )}
-    </Card>
+    </div>
   )
 }
