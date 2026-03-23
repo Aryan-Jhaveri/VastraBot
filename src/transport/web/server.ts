@@ -67,7 +67,7 @@ app.post('/api/auth/telegram', (req, res) => {
     return res.status(401).json({ error: 'Invalid Telegram data' })
   }
   const password = process.env.WEB_AUTH_PASSWORD ?? ''
-  res.cookie('closet-auth', password, { httpOnly: true, sameSite: 'lax' })
+  res.cookie('closet-auth', password, { httpOnly: true, sameSite: 'none', secure: true })
   res.json({ token: password })
 })
 
@@ -80,8 +80,8 @@ app.post('/api/auth', (req, res) => {
   }
   res.cookie('closet-auth', password ?? '', {
     httpOnly: true,
-    sameSite: 'lax',
-    // No maxAge = session cookie
+    sameSite: isDev ? 'lax' : 'none',
+    secure: !isDev,
   })
   res.json({ ok: true })
 })
@@ -107,7 +107,7 @@ app.use('/api/tryon', authGuard, tryonRouter)
 if (!isDev) {
   const distDir = join(__dirname, 'app/dist')
   app.use(express.static(distDir))
-  app.get('*', (_req, res) => {
+  app.get('/{*path}', (_req, res) => {
     res.sendFile(join(distDir, 'index.html'))
   })
 }
@@ -116,7 +116,15 @@ export { app }
 
 // Only listen when run directly (not imported in tests)
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Closet web server running on http://localhost:${PORT}`)
+  })
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Kill the old process first:\n  kill $(lsof -ti :${PORT})`)
+    } else {
+      console.error('Server error:', err)
+    }
+    process.exit(1)
   })
 }

@@ -65,6 +65,10 @@ npm run db:generate
 npm run db:migrate
 ```
 
+# Run tunnel pointing at your Express server
+  cloudflared tunnel --url http://localhost:300
+
+
 ## Add item flow
 
 ```

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
-import { getToken, apiFetchJSON } from './api/client'
+import { getToken, setToken, apiFetchJSON } from './api/client'
 import { Home } from './pages/Home'
 import { Closet } from './pages/Closet'
 import { TryOn } from './pages/TryOn'
@@ -29,27 +29,33 @@ export function App() {
 
   useEffect(() => {
     async function checkAuth() {
-      // Inside Telegram Mini App — auto-authenticate via initData
-      const tg = (window as Record<string, unknown>).Telegram as { WebApp?: { initData: string; ready(): void; expand(): void } } | undefined
-      if (tg?.WebApp?.initData) {
+      const tg = (window as unknown as { Telegram?: { WebApp?: { initData: string; ready(): void; expand(): void } } }).Telegram
+
+      // Always signal ready + expand immediately — must happen before any async work
+      // or Telegram's loading spinner never dismisses
+      if (tg?.WebApp) {
         tg.WebApp.ready()
         tg.WebApp.expand()
-        try {
-          const res = await fetch('/api/auth/telegram', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ initData: tg.WebApp.initData }),
-          })
-          if (res.ok) {
-            const { token } = await res.json() as { token: string }
-            setToken(token)
-            setAuthed(true)
-            return
-          }
-        } catch { /* fall through to password auth */ }
+
+        // Authenticate via initData when available
+        if (tg.WebApp.initData) {
+          try {
+            const res = await fetch('/api/auth/telegram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ initData: tg.WebApp.initData }),
+            })
+            if (res.ok) {
+              const { token } = await res.json() as { token: string }
+              setToken(token)
+              setAuthed(true)
+              return
+            }
+          } catch { /* fall through to password auth */ }
+        }
       }
 
-      // Normal browser — verify stored token
+      // Normal browser (or Telegram initData auth failed) — verify stored token
       const token = getToken()
       if (!token) { setAuthed(false); return }
       apiFetchJSON('/api/items?limit=1')
