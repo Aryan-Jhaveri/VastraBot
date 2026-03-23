@@ -90,10 +90,10 @@ app.post('/api/auth', (req, res) => {
 // Use app.use so req.path gives the sub-path (Express 5 wildcard syntax changed)
 app.use('/images', authGuard, (req, res) => {
   // req.path = e.g. "/items/abc123.jpg"
+  // Use relative path + root option — send@1.x (Express 5) treats dotfile dirs like .closet as 404
   const relativePath = `images${req.path}`
-  const absPath = resolveImagePath(relativePath)
-  if (!existsSync(absPath)) return res.status(404).send('Not found')
-  res.sendFile(absPath)
+  if (!existsSync(resolveImagePath(relativePath))) return res.status(404).send('Not found')
+  res.sendFile(relativePath, { root: DATA_DIR })
 })
 
 // API routes — all guarded
