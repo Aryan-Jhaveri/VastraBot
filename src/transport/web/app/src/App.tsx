@@ -28,15 +28,35 @@ export function App() {
   const [authed, setAuthed] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const token = getToken()
-    if (!token) {
-      setAuthed(false)
-      return
+    async function checkAuth() {
+      // Inside Telegram Mini App — auto-authenticate via initData
+      const tg = (window as Record<string, unknown>).Telegram as { WebApp?: { initData: string; ready(): void; expand(): void } } | undefined
+      if (tg?.WebApp?.initData) {
+        tg.WebApp.ready()
+        tg.WebApp.expand()
+        try {
+          const res = await fetch('/api/auth/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData: tg.WebApp.initData }),
+          })
+          if (res.ok) {
+            const { token } = await res.json() as { token: string }
+            setToken(token)
+            setAuthed(true)
+            return
+          }
+        } catch { /* fall through to password auth */ }
+      }
+
+      // Normal browser — verify stored token
+      const token = getToken()
+      if (!token) { setAuthed(false); return }
+      apiFetchJSON('/api/items?limit=1')
+        .then(() => setAuthed(true))
+        .catch(() => setAuthed(false))
     }
-    // Verify token is still valid
-    apiFetchJSON('/api/items?limit=1')
-      .then(() => setAuthed(true))
-      .catch(() => setAuthed(false))
+    void checkAuth()
   }, [])
 
   if (authed === null) {

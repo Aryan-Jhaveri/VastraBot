@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { existsSync } from 'fs'
+import { createHmac } from 'crypto'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { db, DATA_DIR } from '../../db/client.js'
 import { mkdirSync } from 'fs'
@@ -15,6 +16,20 @@ import outfitsRouter from './routes/outfits.js'
 import weatherRouter from './routes/weather.js'
 import userPhotosRouter from './routes/userPhotos.js'
 import tryonRouter from './routes/tryon.js'
+
+export function validateTelegramInitData(initData: string, botToken: string): boolean {
+  const params = new URLSearchParams(initData)
+  const hash = params.get('hash')
+  if (!hash) return false
+  params.delete('hash')
+  const dataCheckString = Array.from(params.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('\n')
+  const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest()
+  const expected = createHmac('sha256', secretKey).update(dataCheckString).digest('hex')
+  return expected === hash
+}
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -40,6 +55,21 @@ if (isDev) {
 }
 
 app.use(express.json())
+
+// Telegram Mini App auth — validates initData signed by bot token
+app.post('/api/auth/telegram', (req, res) => {
+  const { initData } = req.body as { initData?: string }
+  const botToken = process.env.TELEGRAM_BOT_TOKEN
+  if (!botToken || !initData) {
+    return res.status(400).json({ error: 'Missing initData or bot token' })
+  }
+  if (!validateTelegramInitData(initData, botToken)) {
+    return res.status(401).json({ error: 'Invalid Telegram data' })
+  }
+  const password = process.env.WEB_AUTH_PASSWORD ?? ''
+  res.cookie('closet-auth', password, { httpOnly: true, sameSite: 'lax' })
+  res.json({ token: password })
+})
 
 // Auth login endpoint (unguarded — sets httpOnly cookie as backup for image requests)
 app.post('/api/auth', (req, res) => {

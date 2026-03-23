@@ -109,6 +109,16 @@ async function main() {
     }
   })
 
+  // ── Mini App menu button ──────────────────────────────────────────────────────
+
+  const webAppUrl = process.env.WEB_APP_URL
+  if (webAppUrl) {
+    await bot.api.setChatMenuButton({
+      menu_button: { type: 'web_app', text: 'Open Closet', web_app: { url: webAppUrl } },
+    })
+    console.log(`Mini App menu button set → ${webAppUrl}`)
+  }
+
   // ── Start ─────────────────────────────────────────────────────────────────────
 
   console.log('Starting Closet bot...')
