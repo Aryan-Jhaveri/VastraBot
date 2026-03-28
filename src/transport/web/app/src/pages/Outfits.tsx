@@ -129,7 +129,7 @@ export function Outfits() {
         <OutfitDetail
           outfit={detail}
           onClose={() => setDetail(null)}
-          onChanged={() => { refetch(); setDetail(null) }}
+          onChanged={refetch}
         />
       )}
 

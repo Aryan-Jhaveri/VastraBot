@@ -4,6 +4,7 @@ import { updateOutfit, uploadOutfitCover, removeOutfitCover, deleteOutfit } from
 import type { HydratedOutfit } from '../api/outfits'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
+import { ChipToggle } from '../components/ui/ChipToggle'
 
 const SEASONS = ['spring', 'summer', 'fall', 'winter', 'all']
 
@@ -20,6 +21,8 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
   const [nameInput, setNameInput] = useState(initialOutfit.name)
   const [editingOccasion, setEditingOccasion] = useState(false)
   const [occasionInput, setOccasionInput] = useState(initialOutfit.occasion ?? '')
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notesInput, setNotesInput] = useState(initialOutfit.notes ?? '')
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
@@ -56,15 +59,16 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
     finally { setSaving(false) }
   }
 
-  async function toggleSeason(s: string) {
-    const next = currentSeasons.includes(s)
-      ? currentSeasons.filter(x => x !== s)
-      : [...currentSeasons, s]
+  async function saveNotes() {
+    if (notesInput === (outfit.notes ?? '')) { setEditingNotes(false); return }
+    setSaving(true)
     try {
-      const updated = await updateOutfit(outfit.id, { season: next })
+      const updated = await updateOutfit(outfit.id, { notes: notesInput || undefined })
       setOutfit(o => ({ ...o, ...updated }))
+      setEditingNotes(false)
       onChanged()
     } catch (err) { setError(String(err)) }
+    finally { setSaving(false) }
   }
 
   async function addTag(raw: string) {
@@ -222,19 +226,17 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
           {/* Season */}
           <div>
             <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Season</p>
-            <div className="flex gap-1.5 flex-wrap">
-              {SEASONS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => toggleSeason(s)}
-                  className={`px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] border-2 border-[#111] transition-colors capitalize ${
-                    currentSeasons.includes(s) ? 'bg-[#111] text-white' : 'bg-white text-[#111] hover:bg-[#f0f0f0]'
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+            <ChipToggle
+              options={SEASONS}
+              selected={currentSeasons}
+              onChange={async (next) => {
+                try {
+                  const updated = await updateOutfit(outfit.id, { season: next })
+                  setOutfit(o => ({ ...o, ...updated }))
+                  onChanged()
+                } catch (err) { setError(String(err)) }
+              }}
+            />
           </div>
 
           {/* Tags */}
@@ -256,6 +258,30 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
               placeholder="Add tag, press Enter"
               className="w-full border-2 border-[#111] px-3 py-1.5 text-[9px] font-mono outline-none focus:bg-[#f0f0f0] placeholder:text-[#888] placeholder:normal-case"
             />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Notes</p>
+            {editingNotes ? (
+              <div className="flex gap-2">
+                <textarea
+                  autoFocus
+                  value={notesInput}
+                  onChange={e => setNotesInput(e.target.value)}
+                  onBlur={saveNotes}
+                  placeholder="Add notes about this outfit…"
+                  rows={3}
+                  className="flex-1 border-2 border-[#111] px-3 py-1.5 text-[10px] font-mono outline-none focus:bg-[#f0f0f0] resize-none placeholder:text-[#888] placeholder:normal-case"
+                />
+                <Button onClick={saveNotes} loading={saving} className="shrink-0 self-start">Save</Button>
+              </div>
+            ) : (
+              <button onClick={() => setEditingNotes(true)} className="flex items-center gap-2 group w-full text-left">
+                <span className="text-[10px] font-mono text-[#555]">{outfit.notes || <span className="text-[#888]">—</span>}</span>
+                <span className="text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] group-hover:text-[#111] shrink-0">✎</span>
+              </button>
+            )}
           </div>
 
           {/* Item strip */}

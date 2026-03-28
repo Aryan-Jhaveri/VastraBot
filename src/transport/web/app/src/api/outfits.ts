@@ -7,6 +7,7 @@ export interface Outfit {
   itemIds: string     // JSON string
   occasion: string | null
   season: string      // JSON string
+  tags: string        // JSON string
   aiGenerated: number
   weatherContext: string | null
   notes: string | null
