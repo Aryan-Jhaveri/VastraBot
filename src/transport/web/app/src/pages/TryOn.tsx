@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation as useRouterLocation } from 'react-router-dom'
-import { fetchUserPhotos, uploadUserPhoto } from '../api/userPhotos'
+import { fetchUserPhotos, uploadUserPhoto, deleteUserPhoto } from '../api/userPhotos'
 import { fetchItems } from '../api/items'
 import { generateTryOn } from '../api/tryon'
 import type { UserPhoto } from '../api/userPhotos'
@@ -19,6 +19,7 @@ export function TryOn() {
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null)
   const [loadingPhotos, setLoadingPhotos] = useState(true)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null)
 
   const [items, setItems] = useState<Item[]>([])
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
@@ -53,6 +54,21 @@ export function TryOn() {
         .finally(() => setLoadingItems(false))
     }
   }, [step])
+
+  async function handleDeletePhoto(id: string) {
+    setDeletingPhotoId(id)
+    try {
+      await deleteUserPhoto(id)
+      setPhotos(prev => prev.filter(p => p.id !== id))
+      if (selectedPhotoId === id) {
+        setSelectedPhotoId(photos.find(p => p.id !== id)?.id ?? null)
+      }
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setDeletingPhotoId(null)
+    }
+  }
 
   async function handleAddPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -122,23 +138,34 @@ export function TryOn() {
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               {photos.map(photo => (
-                <button
-                  key={photo.id}
-                  onClick={() => setSelectedPhotoId(photo.id)}
-                  className={`relative shrink-0 w-[56px] h-[72px] overflow-hidden border-2 transition-all ${
-                    selectedPhotoId === photo.id
-                      ? 'border-[#111] ring-[3px] ring-[#111] ring-offset-[-3px]'
-                      : 'border-[#111]'
-                  }`}
-                >
-                  <img src={`/${photo.imageUri}`} alt="You" className="w-full h-full object-cover" />
-                </button>
+                <div key={photo.id} className="relative shrink-0">
+                  <button
+                    onClick={() => setSelectedPhotoId(photo.id)}
+                    className={`w-[56px] h-[72px] overflow-hidden border-2 transition-all block ${
+                      selectedPhotoId === photo.id
+                        ? 'border-[#111] ring-[3px] ring-[#111] ring-offset-[-3px]'
+                        : 'border-[#111]'
+                    }`}
+                  >
+                    <img src={`/${photo.imageUri}`} alt="You" className="w-full h-full object-cover" />
+                  </button>
+                  <button
+                    onClick={() => handleDeletePhoto(photo.id)}
+                    disabled={deletingPhotoId === photo.id}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#111] text-white flex items-center justify-center text-[8px] font-bold leading-none hover:bg-[#444] disabled:opacity-50"
+                    title="Remove photo"
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
-              <label className={`shrink-0 w-[56px] h-[72px] flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#888] cursor-pointer hover:border-[#111] transition-colors ${uploadingPhoto ? 'opacity-50' : ''}`}>
-                {uploadingPhoto ? <Spinner size={20} /> : <span className="text-xl font-bold text-[#888]">+</span>}
-                <span className="text-[7px] font-mono text-[#888] uppercase">Add</span>
-                <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleAddPhoto} disabled={uploadingPhoto} />
-              </label>
+              {photos.length < 4 && (
+                <label className={`shrink-0 w-[56px] h-[72px] flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#888] cursor-pointer hover:border-[#111] transition-colors ${uploadingPhoto ? 'opacity-50' : ''}`}>
+                  {uploadingPhoto ? <Spinner size={20} /> : <span className="text-xl font-bold text-[#888]">+</span>}
+                  <span className="text-[7px] font-mono text-[#888] uppercase">Add</span>
+                  <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleAddPhoto} disabled={uploadingPhoto} />
+                </label>
+              )}
             </div>
           )}
 
@@ -195,7 +222,7 @@ export function TryOn() {
           {resultUri && !generating && (
             <>
               <div className="border-2 border-[#111] overflow-hidden">
-                <img src={`/${resultUri}`} alt="Try-on result" className="w-full object-contain" />
+                <img src={`/${resultUri}`} alt="Try-on result" className="w-full min-h-[60vh] object-contain bg-[#f0f0f0]" />
               </div>
               <Button onClick={reset} variant="secondary" className="w-full">
                 Try Again

@@ -30,20 +30,16 @@ export function Home() {
   async function handleGeocode(e: React.FormEvent) {
     e.preventDefault()
     if (!cityInput.trim()) return
-    try {
-      const loc = await geocode(cityInput.trim())
-      void suggest(loc.lat, loc.lon)
-    } catch { /* error shown in WeatherCard */ }
+    try { await geocode(cityInput.trim()) }
+    catch { /* error shown in WeatherCard */ }
   }
 
   async function handleGPS() {
-    try {
-      const loc = await requestBrowserLocation()
-      void suggest(loc.lat, loc.lon)
-    } catch { /* user denied */ }
+    try { await requestBrowserLocation() }
+    catch { /* user denied */ }
   }
 
-  async function handleRefresh() {
+  async function handleSuggest() {
     if (location) void suggest(location.lat, location.lon)
   }
 
@@ -107,11 +103,11 @@ export function Home() {
         <span className="text-[10px] font-bold font-mono uppercase tracking-[0.1em]">Today's Outfit</span>
         {location && (
           <button
-            onClick={handleRefresh}
+            onClick={handleSuggest}
             disabled={outfitLoading}
             className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] hover:text-[#111] disabled:opacity-40"
           >
-            {outfitLoading ? 'Loading…' : 'Refresh'}
+            {outfitLoading ? 'Loading…' : result ? 'Refresh' : 'Suggest'}
           </button>
         )}
       </div>
@@ -119,6 +115,12 @@ export function Home() {
       {!location && !outfitLoading && (
         <p className="text-[10px] font-mono text-[#888] uppercase tracking-[0.06em] text-center py-6">
           Set a location to get outfit suggestions.
+        </p>
+      )}
+
+      {location && !result && !outfitLoading && (
+        <p className="text-[10px] font-mono text-[#888] uppercase tracking-[0.06em] text-center py-6">
+          Tap Suggest to get today's outfit.
         </p>
       )}
 
