@@ -11,7 +11,7 @@
         - [ ] Try On page needs to show the save image
         - [x] Try On page needs to have delete photo button
         - [x] Remove password functionality (removed from Settings)
-        - [ ] When a card is opened, the garment photo is not visible.
+        - [x] When a card is opened, the garment photo is not visible.
         - [x] To close a card, it a small cross in the corner. It'd be better to close a card when a background click happens.
         - [x] Try on image needs to be big enough to see. Need to figure out why and how having multiple try-on referenc image is wired  (should have max 4)
 

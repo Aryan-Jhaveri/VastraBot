@@ -77,11 +77,11 @@ export function ItemDetail({ item, onClose, onChanged }: ItemDetailProps) {
           )}
 
           {/* Image */}
-          <div className="aspect-[4/5] overflow-hidden border-2 border-[#111]">
+          <div className="relative aspect-[4/5] overflow-hidden border-2 border-[#111]">
             <img
               src={`/${item.imageUri}`}
               alt={item.subcategory ?? item.category}
-              className="h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           </div>
 
