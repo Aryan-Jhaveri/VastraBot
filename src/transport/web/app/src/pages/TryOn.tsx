@@ -14,8 +14,8 @@ import { Spinner } from '../components/ui/Spinner'
 import { cropToAspectRatio } from '../lib/cropImage'
 import { nanoid } from 'nanoid'
 
-type TryOnStep = 'pick-photo' | 'pick-items' | 'upload-garments' | 'result'
-type ItemsTab = 'items' | 'outfits'
+type TryOnStep = 'pick-photo' | 'pick-items' | 'result'
+type ItemsTab = 'items' | 'outfits' | 'upload'
 
 interface GarmentUpload {
   localId: string
@@ -188,7 +188,7 @@ export function TryOn() {
   }
 
   async function handleGenerate() {
-    if (!selectedPhotoId || selectedItemIds.size === 0) return
+    if (!selectedPhotoId || (selectedItemIds.size === 0 && uploadedGarments.length === 0)) return
     setGenerating(true)
     setError(null)
     setSaved(false)
@@ -205,17 +205,40 @@ export function TryOn() {
       setResultUri(result.resultImageUri)
     } catch (err) {
       setError(String(err))
-      setStep('upload-garments')
+      setStep('pick-items')
     } finally {
       setGenerating(false)
     }
   }
 
   function tryAgain() {
-    setStep('upload-garments')
+    setStep('pick-items')
     setResultUri(null)
     setSaved(false)
     setError(null)
+  }
+
+  async function handleSaveToDevice() {
+    if (!resultUri) return
+    // Try native share (adds to Photos on iOS)
+    if (navigator.share && navigator.canShare) {
+      try {
+        const res = await fetch(`/${resultUri}`)
+        const blob = await res.blob()
+        const file = new File([blob], `tryon-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file] })
+          setSaved(true)
+          return
+        }
+      } catch { /* fall through to download */ }
+    }
+    // Fallback: trigger browser download
+    const a = document.createElement('a')
+    a.href = `/${resultUri}`
+    a.download = `tryon-${Date.now()}.jpg`
+    a.click()
+    setSaved(true)
   }
 
   function previewHistory(item: TryonHistoryItem) {
@@ -373,7 +396,7 @@ export function TryOn() {
         </>
       )}
 
-      {/* ── Step 2: Pick items / outfits ── */}
+      {/* ── Step 2: Pick items / outfits / upload ── */}
       {step === 'pick-items' && (
         <>
           <div className="flex items-center justify-between border-b-2 border-[#111] pb-2">
@@ -382,9 +405,9 @@ export function TryOn() {
             <div className="w-12" />
           </div>
 
-          {/* ITEMS / OUTFITS tabs */}
+          {/* ITEMS / OUTFITS / UPLOAD tabs */}
           <div className="flex border-b-2 border-[#111]">
-            {(['items', 'outfits'] as ItemsTab[]).map(tab => (
+            {(['items', 'outfits', 'upload'] as ItemsTab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setItemsTab(tab)}
@@ -450,7 +473,40 @@ export function TryOn() {
             )
           )}
 
-          {/* Selected items preview strip */}
+          {/* UPLOAD tab */}
+          {itemsTab === 'upload' && (
+            <>
+              <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#888] p-6 cursor-pointer hover:border-[#111] transition-colors">
+                <span className="text-3xl font-bold text-[#888] leading-none">+</span>
+                <span className="text-[9px] font-mono text-[#888] uppercase tracking-[0.08em]">Upload garment photos (optional)</span>
+                <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddGarments} />
+              </label>
+              {uploadedGarments.length > 0 && (
+                <div className="grid grid-cols-3 gap-[3px]">
+                  {uploadedGarments.map(g => (
+                    <div key={g.localId} className="relative aspect-square overflow-hidden border-2 border-[#111]">
+                      <img src={g.previewUrl} alt="Garment" className="w-full h-full object-cover" />
+                      {g.uploading && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <Spinner size={24} />
+                        </div>
+                      )}
+                      {!g.uploading && (
+                        <button
+                          onClick={() => removeGarment(g.localId)}
+                          className="absolute top-1 right-1 w-5 h-5 bg-[#111] text-white flex items-center justify-center text-xs font-bold hover:bg-[#444] transition-colors"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Selected items preview strip (items tab only) */}
           {selectedItemIds.size > 0 && itemsTab === 'items' && (
             <div className="border-t-2 border-[#111] pt-2">
               <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] mb-1.5">{selectedItemIds.size} selected</p>
@@ -468,59 +524,17 @@ export function TryOn() {
             </div>
           )}
 
-          <div className="border-t-2 border-[#111] pt-3">
-            <Button onClick={() => setStep('upload-garments')} disabled={selectedItemIds.size === 0} className="w-full">
-              Next →
-            </Button>
-          </div>
-        </>
-      )}
-
-      {/* ── Step 3: Upload Extras ── */}
-      {step === 'upload-garments' && (
-        <>
-          <div className="flex items-center justify-between border-b-2 border-[#111] pb-2">
-            <button onClick={() => setStep('pick-items')} className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] hover:text-[#111]">← Items</button>
-            <p className="text-[9px] font-mono uppercase tracking-[0.06em]">Extras</p>
-            <div className="w-12" />
-          </div>
-
-          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#888] p-6 cursor-pointer hover:border-[#111] transition-colors">
-            <span className="text-3xl font-bold text-[#888] leading-none">+</span>
-            <span className="text-[9px] font-mono text-[#888] uppercase tracking-[0.08em]">Upload garment photos (optional)</span>
-            <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddGarments} />
-          </label>
-
-          {uploadedGarments.length > 0 && (
-            <div className="grid grid-cols-3 gap-[3px]">
-              {uploadedGarments.map(g => (
-                <div key={g.localId} className="relative aspect-square overflow-hidden border-2 border-[#111]">
-                  <img src={g.previewUrl} alt="Garment" className="w-full h-full object-cover" />
-                  {g.uploading && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Spinner size={24} />
-                    </div>
-                  )}
-                  {!g.uploading && (
-                    <button
-                      onClick={() => removeGarment(g.localId)}
-                      className="absolute top-1 right-1 w-5 h-5 bg-[#111] text-white flex items-center justify-center text-xs font-bold hover:bg-[#444] transition-colors"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="border-t-2 border-[#111] pt-3">
+          <div className="sticky bottom-16 bg-white border-t-2 border-b-2 border-[#111] pt-3 pb-3 mt-2">
             <Button
               onClick={handleGenerate}
-              disabled={uploadedGarments.some(g => g.uploading)}
+              disabled={selectedItemIds.size === 0 && uploadedGarments.length === 0 || uploadedGarments.some(g => g.uploading)}
               className="w-full"
             >
-              Generate Preview ({selectedItemIds.size} item{selectedItemIds.size !== 1 ? 's' : ''}{uploadedGarments.length > 0 ? ` · ${uploadedGarments.length} extra${uploadedGarments.length !== 1 ? 's' : ''}` : ''})
+              Generate Preview
+              {(selectedItemIds.size > 0 || uploadedGarments.length > 0) && ` (${[
+                selectedItemIds.size > 0 && `${selectedItemIds.size} item${selectedItemIds.size !== 1 ? 's' : ''}`,
+                uploadedGarments.length > 0 && `${uploadedGarments.length} upload${uploadedGarments.length !== 1 ? 's' : ''}`,
+              ].filter(Boolean).join(' · ')})`}
             </Button>
           </div>
         </>
@@ -554,8 +568,8 @@ export function TryOn() {
                 <img src={`/${resultUri}`} alt="Try-on result" className="w-full min-h-[60vh] object-contain bg-[#f0f0f0]" />
               </div>
               <div className="flex gap-2">
-                <Button onClick={() => setSaved(true)} disabled={saved} className="flex-1">
-                  {saved ? 'Saved ✓' : 'Save'}
+                <Button onClick={handleSaveToDevice} disabled={saved} className="flex-1">
+                  {saved ? 'Saved ✓' : 'Save to Device'}
                 </Button>
                 <Button onClick={tryAgain} variant="secondary" className="flex-1">
                   Try Again

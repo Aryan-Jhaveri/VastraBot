@@ -11,15 +11,31 @@ const PAGE_SIZE = 10
 
 export function Closet() {
   const [category, setCategory] = useState('')
+  const [tag, setTag] = useState('')
   const [page, setPage] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [selected, setSelected] = useState<Item | null>(null)
 
-  const { items, total, loading, refetch } = useItems({ category: category || undefined, page, limit: PAGE_SIZE })
+  const { items, total, loading, refetch } = useItems({
+    category: category || undefined,
+    tags: tag ? [tag] : undefined,
+    page,
+    limit: PAGE_SIZE,
+  })
 
   const { items: allItems } = useItems({ limit: 1000 })
   const categories = useMemo(
     () => [...new Set(allItems.map(i => i.category))].sort(),
+    [allItems],
+  )
+  const allTags = useMemo(
+    () => {
+      const tagSet = new Set<string>()
+      allItems.forEach(i => {
+        try { (JSON.parse(i.tags || '[]') as string[]).forEach(t => tagSet.add(t)) } catch { /* ignore */ }
+      })
+      return [...tagSet].sort()
+    },
     [allItems],
   )
 
@@ -27,6 +43,11 @@ export function Closet() {
 
   function handleCategoryChange(cat: string) {
     setCategory(cat)
+    setPage(1)
+  }
+
+  function handleTagChange(t: string) {
+    setTag(t)
     setPage(1)
   }
 
@@ -47,6 +68,9 @@ export function Closet() {
       </div>
 
       <CategoryFilter categories={categories} value={category} onChange={handleCategoryChange} />
+      {allTags.length > 0 && (
+        <CategoryFilter categories={allTags} value={tag} onChange={handleTagChange} />
+      )}
 
       {loading && (
         <div className="flex justify-center py-10">

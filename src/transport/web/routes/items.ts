@@ -12,7 +12,7 @@ const upload = multer({ storage: multer.memoryStorage() })
 // GET /api/items?category=&page=&limit=
 router.get('/', async (req, res) => {
   try {
-    const { category, color, season, brand, page, limit: limitStr } = req.query as Record<string, string>
+    const { category, color, season, brand, tags, page, limit: limitStr } = req.query as Record<string, string>
     const pageNum = Math.max(1, parseInt(page ?? '1', 10))
     const pageSize = Math.min(100, Math.max(1, parseInt(limitStr ?? '10', 10)))
 
@@ -21,6 +21,7 @@ router.get('/', async (req, res) => {
       color: color || undefined,
       season: season || undefined,
       brand: brand || undefined,
+      tags: tags ? tags.split(',').filter(Boolean) : undefined,
     })
 
     const total = allItems.length

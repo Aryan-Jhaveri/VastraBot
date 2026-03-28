@@ -49,11 +49,13 @@ export interface TagData {
 
 export async function fetchItems(params: {
   category?: string
+  tags?: string[]
   page?: number
   limit?: number
 } = {}): Promise<ItemsPage> {
   const qs = new URLSearchParams()
   if (params.category) qs.set('category', params.category)
+  if (params.tags?.length) qs.set('tags', params.tags.join(','))
   if (params.page) qs.set('page', String(params.page))
   if (params.limit) qs.set('limit', String(params.limit))
   return apiFetchJSON(`/api/items?${qs}`)

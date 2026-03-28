@@ -4,6 +4,7 @@ import type { ItemsPage } from '../api/items'
 
 interface UseItemsOptions {
   category?: string
+  tags?: string[]
   page?: number
   limit?: number
 }
@@ -12,6 +13,8 @@ export function useItems(opts: UseItemsOptions = {}) {
   const [data, setData] = useState<ItemsPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const tagsKey = opts.tags?.join(',') ?? ''
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -24,7 +27,8 @@ export function useItems(opts: UseItemsOptions = {}) {
     } finally {
       setLoading(false)
     }
-  }, [opts.category, opts.page, opts.limit])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opts.category, opts.page, opts.limit, tagsKey])
 
   useEffect(() => {
     void load()

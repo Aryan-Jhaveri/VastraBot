@@ -1,4 +1,10 @@
 # Ideas
+    - [ ] Items page needs to be like closet really, with the ability to filter by tags, same for the otfits page.
+    - [ ] try on page doesn't show upload page. Only Items & Outfits page.
+
+    - [ ] DB: Need the ability for data labels and care labels ocr text to be added to the outfit field, and shown and be editable in outfit cards.
+    - [ ] Closet item edit page needs to ability to add and remove tags, and thoruoughly edit the item details where necessary. 
+    
     - [x] Features — Outfits page (Step 9 below)
         - Save outfit, create folders/moods page to save ideas and future references, add file references to original files so we dont have to rely on generated gemini images. Bundles of clothes can be saved together to either save or save a photo someone takes themselves. Maybe check reference projects for inspiration
 
