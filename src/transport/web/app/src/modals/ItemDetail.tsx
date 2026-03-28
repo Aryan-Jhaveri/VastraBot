@@ -53,8 +53,8 @@ export function ItemDetail({ item, onClose, onChanged }: ItemDetailProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
-      <div className="bg-white border-2 border-[#111] w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="bg-white border-2 border-[#111] w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b-2 border-[#111]">
           <button onClick={onClose} className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:text-[#888]">←</button>
@@ -152,11 +152,6 @@ export function ItemDetail({ item, onClose, onChanged }: ItemDetailProps) {
               ))}
             </div>
           )}
-
-          {/* Worn count */}
-          <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em]">
-            Worn {item.timesWorn}×{item.lastWornAt ? ` — last ${Math.floor((Date.now() - item.lastWornAt) / 86400000)} days ago` : ''}
-          </p>
 
           {/* Actions */}
           <div className="flex flex-col gap-2 border-t-2 border-[#111] pt-3">
