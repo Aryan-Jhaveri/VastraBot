@@ -3,6 +3,7 @@ import { analyzeItem, createItem } from '../api/items'
 import type { ItemClassification } from '../api/items'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
+import { cropToAspectRatio } from '../lib/cropImage'
 
 interface AddItemProps {
   onClose: () => void
@@ -34,7 +35,9 @@ export function AddItem({ onClose, onSaved }: AddItemProps) {
     setPreview(URL.createObjectURL(f))
   }
 
-  async function handleFileSelected(f: File) {
+  async function handleFileSelected(rawFile: File) {
+    // Crop item photos to 4:5 before analysis for consistent display
+    const f = await cropToAspectRatio(rawFile, 4, 5).catch(() => rawFile)
     setFileAndPreview(f)
     setStep(2)
     setError(null)
@@ -161,7 +164,7 @@ export function AddItem({ onClose, onSaved }: AddItemProps) {
               <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em]">Step 2 — Analyzing</p>
               {preview && (
                 <div className="flex justify-center">
-                  <img src={preview} alt="Preview" className="h-36 w-28 object-cover border-2 border-[#111]" />
+                  <img src={preview} alt="Preview" className="w-28 aspect-[4/5] object-cover border-2 border-[#111]" />
                 </div>
               )}
               <div className="border-2 border-[#111] p-3">
@@ -182,7 +185,7 @@ export function AddItem({ onClose, onSaved }: AddItemProps) {
             <>
               <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em]">Step 3 — Confirm</p>
               <div className="flex gap-3">
-                <img src={preview} alt="Preview" className="h-[72px] w-14 shrink-0 object-cover border-2 border-[#111]" />
+                <img src={preview} alt="Preview" className="w-14 aspect-[4/5] shrink-0 object-cover border-2 border-[#111]" />
                 <div className="flex-1 flex flex-col gap-1.5">
                   {[
                     { label: 'Cat.', value: category, set: setCategory },

@@ -43,7 +43,7 @@ function JobCard({ job, onEdit, onToggle, onDelete, toggling, deleting }: JobCar
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${job.enabled ? 'bg-green-500' : 'bg-[#ccc]'}`} />
             <p className="text-sm font-bold truncate">{job.name}</p>
           </div>
-          {job.params?.theme && (
+          {typeof job.params?.theme === 'string' && (
             <p className="text-[10px] font-mono text-[#888] pl-3.5 truncate">{job.params.theme}</p>
           )}
         </div>

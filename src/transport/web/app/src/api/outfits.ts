@@ -54,6 +54,7 @@ export async function createOutfit(data: {
   name: string
   itemIds: string[]
   occasion?: string
+  notes?: string
   aiGenerated?: boolean
   weatherContext?: Record<string, unknown>
 }): Promise<Outfit> {

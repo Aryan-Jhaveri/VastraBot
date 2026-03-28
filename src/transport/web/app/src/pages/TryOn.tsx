@@ -8,6 +8,7 @@ import type { Item } from '../api/items'
 import { ItemCard } from '../components/ItemCard'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
+import { cropToAspectRatio } from '../lib/cropImage'
 
 type TryOnStep = 'pick-photo' | 'pick-items' | 'result'
 
@@ -35,6 +36,7 @@ export function TryOn() {
         setPhotos(ps)
         const primary = ps.find(p => p.isPrimary)
         if (primary) setSelectedPhotoId(primary.id)
+        else if (ps.length > 0) setSelectedPhotoId(ps[0].id)
       })
       .catch(err => setError(String(err)))
       .finally(() => setLoadingPhotos(false))
@@ -59,9 +61,10 @@ export function TryOn() {
     setDeletingPhotoId(id)
     try {
       await deleteUserPhoto(id)
-      setPhotos(prev => prev.filter(p => p.id !== id))
+      const remaining = photos.filter(p => p.id !== id)
+      setPhotos(remaining)
       if (selectedPhotoId === id) {
-        setSelectedPhotoId(photos.find(p => p.id !== id)?.id ?? null)
+        setSelectedPhotoId(remaining[0]?.id ?? null)
       }
     } catch (err) {
       setError(String(err))
@@ -75,13 +78,17 @@ export function TryOn() {
     if (!file) return
     setUploadingPhoto(true)
     try {
-      const photo = await uploadUserPhoto(file)
+      // Crop person photos to 3:4 for consistent display
+      const cropped = await cropToAspectRatio(file, 3, 4)
+      const photo = await uploadUserPhoto(cropped)
       setPhotos(prev => [photo, ...prev])
       setSelectedPhotoId(photo.id)
     } catch (err) {
       setError(String(err))
     } finally {
       setUploadingPhoto(false)
+      // Reset input so same file can be re-selected
+      e.target.value = ''
     }
   }
 
@@ -117,6 +124,8 @@ export function TryOn() {
     setSelectedItemIds(new Set())
   }
 
+  const selectedPhoto = photos.find(p => p.id === selectedPhotoId)
+
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Header */}
@@ -135,38 +144,67 @@ export function TryOn() {
 
           {loadingPhotos ? (
             <div className="flex justify-center py-8"><Spinner /></div>
+          ) : photos.length === 0 ? (
+            /* No photos yet — full-width upload zone */
+            <label className={`block w-full aspect-[3/4] border-2 border-dashed border-[#888] flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-[#111] transition-colors ${uploadingPhoto ? 'opacity-50 pointer-events-none' : ''}`}>
+              {uploadingPhoto
+                ? <Spinner size={32} />
+                : <span className="text-4xl font-bold text-[#888] leading-none">+</span>
+              }
+              <span className="text-[9px] font-mono text-[#888] uppercase tracking-[0.08em]">
+                {uploadingPhoto ? 'Uploading…' : 'Add your photo'}
+              </span>
+              <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleAddPhoto} disabled={uploadingPhoto} />
+            </label>
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {photos.map(photo => (
-                <div key={photo.id} className="relative shrink-0">
+            <>
+              {/* Large hero photo — full width, 3:4 aspect */}
+              <div className="relative w-full aspect-[3/4] border-2 border-[#111] overflow-hidden bg-[#f0f0f0]">
+                {selectedPhoto && (
+                  <img
+                    src={`/${selectedPhoto.imageUri}`}
+                    alt="You"
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                {/* Delete selected photo */}
+                {selectedPhoto && (
                   <button
+                    onClick={() => handleDeletePhoto(selectedPhoto.id)}
+                    disabled={deletingPhotoId === selectedPhoto.id}
+                    className="absolute top-2 right-2 w-8 h-8 bg-[#111] text-white flex items-center justify-center text-base font-bold hover:bg-[#444] disabled:opacity-50 transition-colors"
+                    title="Remove photo"
+                  >
+                    {deletingPhotoId === selectedPhoto.id ? <Spinner size={14} /> : '×'}
+                  </button>
+                )}
+              </div>
+
+              {/* Thumbnail strip + Add button */}
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {photos.map(photo => (
+                  <button
+                    key={photo.id}
                     onClick={() => setSelectedPhotoId(photo.id)}
-                    className={`w-[56px] h-[72px] overflow-hidden border-2 transition-all block ${
+                    className={`shrink-0 w-14 aspect-[3/4] overflow-hidden border-2 transition-all ${
                       selectedPhotoId === photo.id
                         ? 'border-[#111] ring-[3px] ring-[#111] ring-offset-[-3px]'
-                        : 'border-[#111]'
+                        : 'border-[#888] hover:border-[#111]'
                     }`}
                   >
                     <img src={`/${photo.imageUri}`} alt="You" className="w-full h-full object-cover" />
                   </button>
-                  <button
-                    onClick={() => handleDeletePhoto(photo.id)}
-                    disabled={deletingPhotoId === photo.id}
-                    className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#111] text-white flex items-center justify-center text-[8px] font-bold leading-none hover:bg-[#444] disabled:opacity-50"
-                    title="Remove photo"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              {photos.length < 4 && (
-                <label className={`shrink-0 w-[56px] h-[72px] flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#888] cursor-pointer hover:border-[#111] transition-colors ${uploadingPhoto ? 'opacity-50' : ''}`}>
-                  {uploadingPhoto ? <Spinner size={20} /> : <span className="text-xl font-bold text-[#888]">+</span>}
-                  <span className="text-[7px] font-mono text-[#888] uppercase">Add</span>
-                  <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleAddPhoto} disabled={uploadingPhoto} />
-                </label>
-              )}
-            </div>
+                ))}
+
+                {photos.length < 4 && (
+                  <label className={`shrink-0 w-14 aspect-[3/4] flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#888] cursor-pointer hover:border-[#111] transition-colors ${uploadingPhoto ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {uploadingPhoto ? <Spinner size={16} /> : <span className="text-xl font-bold text-[#888] leading-none">+</span>}
+                    <span className="text-[7px] font-mono text-[#888] uppercase">Add</span>
+                    <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleAddPhoto} disabled={uploadingPhoto} />
+                  </label>
+                )}
+              </div>
+            </>
           )}
 
           <div className="border-t-2 border-[#111] pt-3">
