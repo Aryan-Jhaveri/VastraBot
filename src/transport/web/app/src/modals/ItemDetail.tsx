@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { markWorn, deleteItem, updateItem } from '../api/items'
+import { markWorn, deleteItem, updateItem, scanTag } from '../api/items'
 import type { Item } from '../api/items'
 import { Button } from '../components/ui/Button'
+import { Spinner } from '../components/ui/Spinner'
 
 interface ItemDetailProps {
   item: Item
@@ -14,14 +15,16 @@ function parseJSON<T>(s: string, fallback: T): T {
   try { return JSON.parse(s) as T } catch { return fallback }
 }
 
-export function ItemDetail({ item, onClose, onChanged }: ItemDetailProps) {
+export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetailProps) {
   const navigate = useNavigate()
+  const [item, setItem] = useState<Item>(initialItem)
   const [deleting, setDeleting] = useState(false)
   const [marking, setMarking] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [brand, setBrand] = useState(item.brand ?? '')
-  const [size, setSize] = useState(item.size ?? '')
+  const [brand, setBrand] = useState(initialItem.brand ?? '')
+  const [size, setSize] = useState(initialItem.size ?? '')
   const [saving, setSaving] = useState(false)
+  const [scanningTag, setScanningTag] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -45,11 +48,28 @@ export function ItemDetail({ item, onClose, onChanged }: ItemDetailProps) {
   async function handleSaveEdit() {
     setSaving(true)
     try {
-      await updateItem(item.id, { brand: brand || undefined, size: size || undefined })
-      onChanged()
+      const updated = await updateItem(item.id, { brand: brand || undefined, size: size || undefined })
+      setItem(updated)
       setEditing(false)
     } catch (err) { setError(String(err)) }
     finally { setSaving(false) }
+  }
+
+  async function handleScanTag(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setScanningTag(true)
+    setError(null)
+    try {
+      const { item: updated } = await scanTag(item.id, file)
+      setItem(updated)
+      setBrand(updated.brand ?? '')
+      setSize(updated.size ?? '')
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setScanningTag(false)
+    }
   }
 
   return (
@@ -76,7 +96,7 @@ export function ItemDetail({ item, onClose, onChanged }: ItemDetailProps) {
             </div>
           )}
 
-          {/* Image */}
+          {/* Garment image */}
           <div className="relative aspect-[4/5] overflow-hidden border-2 border-[#111]">
             <img
               src={`/${item.imageUri}`}
@@ -132,16 +152,58 @@ export function ItemDetail({ item, onClose, onChanged }: ItemDetailProps) {
             </div>
           )}
 
-          {/* Care instructions */}
-          {careInstructions.length > 0 && (
-            <div>
-              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Care</p>
-              <ul className="space-y-0.5">
-                {careInstructions.map((c, i) => (
-                  <li key={i} className="text-[10px] font-mono text-[#555]">— {c}</li>
-                ))}
-              </ul>
-            </div>
+          {/* Care label photo */}
+          <div>
+            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">
+              Care Label
+            </p>
+            {item.tagImageUri ? (
+              <div className="flex items-start gap-3">
+                <div className="relative w-16 h-20 shrink-0 overflow-hidden border-2 border-[#111]">
+                  <img
+                    src={`/${item.tagImageUri}`}
+                    alt="Care label"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 flex flex-col gap-1">
+                  {careInstructions.length > 0 && (
+                    <ul className="space-y-0.5">
+                      {careInstructions.map((c, i) => (
+                        <li key={i} className="text-[10px] font-mono text-[#555]">— {c}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <label className={`mt-1 self-start border border-[#888] px-2 py-0.5 text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] cursor-pointer hover:border-[#111] hover:text-[#111] transition-colors ${scanningTag ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {scanningTag ? 'Scanning…' : 'Re-scan'}
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleScanTag} disabled={scanningTag} />
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <label className={`flex items-center gap-3 border-2 border-dashed border-[#888] p-3 cursor-pointer hover:border-[#111] transition-colors ${scanningTag ? 'opacity-50 pointer-events-none' : ''}`}>
+                {scanningTag
+                  ? <Spinner size={20} />
+                  : <div className="w-8 h-8 border-2 border-[#888] flex items-center justify-center text-[#888] font-bold">+</div>
+                }
+                <div>
+                  <p className="text-[9px] font-bold font-mono uppercase tracking-[0.08em]">
+                    {scanningTag ? 'Scanning label…' : 'Add Care Label Photo'}
+                  </p>
+                  <p className="text-[8px] font-mono text-[#888] mt-0.5">AI will extract material & care info</p>
+                </div>
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleScanTag} disabled={scanningTag} />
+              </label>
+            )}
+          </div>
+
+          {/* Care instructions (when no label photo yet but instructions exist) */}
+          {!item.tagImageUri && careInstructions.length > 0 && (
+            <ul className="space-y-0.5 -mt-2">
+              {careInstructions.map((c, i) => (
+                <li key={i} className="text-[10px] font-mono text-[#555]">— {c}</li>
+              ))}
+            </ul>
           )}
 
           {/* Tags */}

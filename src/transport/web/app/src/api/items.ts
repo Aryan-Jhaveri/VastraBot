@@ -95,7 +95,7 @@ export async function markWorn(id: string): Promise<Item> {
   return apiFetchJSON(`/api/items/${id}/worn`, { method: 'POST' })
 }
 
-export async function scanTag(id: string, file: File): Promise<TagData> {
+export async function scanTag(id: string, file: File): Promise<{ item: Item; tagData: TagData }> {
   const fd = new FormData()
   fd.append('image', file)
   return apiFetchJSON(`/api/items/${id}/tag`, { method: 'POST', body: fd })

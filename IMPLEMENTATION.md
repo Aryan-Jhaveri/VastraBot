@@ -16,7 +16,7 @@
         - [x] Try on image needs to be big enough to see. Need to figure out why and how having multiple try-on referenc image is wired  (should have max 4)
 
 
-    - [ ] : Data Schema
+    - [x] : Data Schema
         - Each shirt card, needs to show it's respective label photo stored. There needs to be upload label space in the card if a label photo is not saved
 
     - [x] : Remove Worn (?) count, it is useless counter.

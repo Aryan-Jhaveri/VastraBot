@@ -3,6 +3,8 @@ import multer from 'multer'
 import { addItem, listItems, getItem, updateItem, deleteItem, markWorn } from '../../../tools/items.js'
 import { categorizeItem } from '../../../ai/categorize.js'
 import { scanTag } from '../../../ai/scanTag.js'
+import { saveImageFromBase64 } from '../../../storage/images.js'
+import { updateItem as dbUpdateItem } from '../../../db/queries.js'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage() })
@@ -116,13 +118,30 @@ router.post('/:id/worn', async (req, res) => {
   }
 })
 
-// POST /api/items/:id/tag — scan care label
+// POST /api/items/:id/tag — scan care label, save image, apply extracted data
 router.post('/:id/tag', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image provided' })
+    const current = await getItem(req.params.id)
+    if (!current) return res.status(404).json({ error: 'Not found' })
+
     const base64 = req.file.buffer.toString('base64')
-    const tagData = await scanTag(base64)
-    res.json(tagData)
+    const [tagImageUri, tagData] = await Promise.all([
+      saveImageFromBase64(base64, 'tags'),
+      scanTag(base64),
+    ])
+
+    // Apply extracted data; don't overwrite fields the user already set
+    const patch: Record<string, unknown> = { tagImageUri }
+    if (tagData.brand && !current.brand) patch.brand = tagData.brand
+    if (tagData.size && !current.size) patch.size = tagData.size
+    if (tagData.material_composition) patch.material = tagData.material_composition
+    if (tagData.care_instructions?.length) {
+      patch.careInstructions = JSON.stringify(tagData.care_instructions)
+    }
+
+    const item = dbUpdateItem(req.params.id, patch)
+    res.json({ item, tagData })
   } catch (err) {
     res.status(500).json({ error: String(err) })
   }
