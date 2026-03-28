@@ -32,6 +32,10 @@ import { items, outfits, userPhotos } from '../db/schema.js'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 beforeAll(() => {
+  // Pre-create image sub-dirs so sharp can write without relying on ensureDir
+  for (const sub of ['items', 'tags', 'tryon', 'user', 'outfits']) {
+    mkdirSync(join(TEST_DIR, 'images', sub), { recursive: true })
+  }
   migrate(db, { migrationsFolder: join(__dirname, '../db/migrations') })
 })
 

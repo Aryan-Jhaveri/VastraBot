@@ -106,6 +106,13 @@ export const CreateOutfitInputSchema = z.object({
 })
 export type CreateOutfitInput = z.infer<typeof CreateOutfitInputSchema>
 
+export const UpdateOutfitInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  occasion: z.string().optional(),
+  notes: z.string().optional(),
+})
+export type UpdateOutfitInput = z.infer<typeof UpdateOutfitInputSchema>
+
 export const AddUserPhotoInputSchema = z.object({
   imageBase64: z.string().optional(),
   imagePath: z.string().optional(),

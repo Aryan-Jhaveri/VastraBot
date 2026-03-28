@@ -1,5 +1,5 @@
 import * as queries from '../db/queries.js'
-import type { Outfit, CreateOutfitInput } from '../types/index.js'
+import type { Outfit, CreateOutfitInput, UpdateOutfitInput } from '../types/index.js'
 
 export async function createOutfit(input: CreateOutfitInput): Promise<Outfit> {
   return queries.insertOutfit({
@@ -33,6 +33,12 @@ export async function getOutfitWithItems(id: string) {
 
 export async function deleteOutfit(id: string): Promise<void> {
   queries.deleteOutfit(id)
+}
+
+export async function updateOutfit(id: string, input: UpdateOutfitInput): Promise<Outfit> {
+  const updated = queries.updateOutfit(id, input)
+  if (!updated) throw new Error(`Outfit ${id} not found`)
+  return updated
 }
 
 export async function markOutfitWorn(id: string): Promise<Outfit> {

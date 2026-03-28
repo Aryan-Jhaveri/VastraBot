@@ -19,9 +19,19 @@ vi.mock('../../../ai/scanTag.js', () => ({
   scanTag: vi.fn(),
 }))
 
+vi.mock('../../../storage/images.js', () => ({
+  saveImageFromBase64: vi.fn(),
+}))
+
+vi.mock('../../../db/queries.js', () => ({
+  updateItem: vi.fn(),
+}))
+
 import * as itemsTools from '../../../tools/items.js'
 import * as categorize from '../../../ai/categorize.js'
 import * as scanTagMod from '../../../ai/scanTag.js'
+import * as imageStorage from '../../../storage/images.js'
+import * as queries from '../../../db/queries.js'
 import itemsRouter from './items.js'
 
 function makeApp() {
@@ -30,6 +40,10 @@ function makeApp() {
   app.use('/', itemsRouter)
   return app
 }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 const mockItem = {
   id: 'item1',
@@ -172,13 +186,16 @@ describe('POST /:id/worn', () => {
 
 describe('POST /:id/tag', () => {
   it('returns tag data from image', async () => {
-    const mockTag = { brand: 'Levi\'s', size: 'M', material_composition: '100% cotton', care_instructions: ['Machine wash'], country_of_origin: 'USA' }
+    const mockTag = { brand: "Levi's", size: 'M', material_composition: '100% cotton', care_instructions: ['Machine wash'], country_of_origin: 'USA' }
+    vi.mocked(itemsTools.getItem).mockResolvedValue(mockItem as any)
     vi.mocked(scanTagMod.scanTag).mockResolvedValue(mockTag as any)
+    vi.mocked(imageStorage.saveImageFromBase64).mockResolvedValue('images/tags/abc.jpg')
+    vi.mocked(queries.updateItem).mockReturnValue({ ...mockItem, brand: "Levi's", tagImageUri: 'images/tags/abc.jpg' } as any)
     const app = makeApp()
     const res = await request(app)
       .post('/item1/tag')
       .attach('image', Buffer.from('fake-tag'), 'tag.jpg')
     expect(res.status).toBe(200)
-    expect(res.body.brand).toBe("Levi's")
+    expect(res.body.tagData.brand).toBe("Levi's")
   })
 })

@@ -16,6 +16,9 @@ import outfitsRouter from './routes/outfits.js'
 import weatherRouter from './routes/weather.js'
 import userPhotosRouter from './routes/userPhotos.js'
 import tryonRouter from './routes/tryon.js'
+import jobsRouter from './routes/jobs.js'
+import { registerBuiltInJobTypes } from '../../jobs/types/index.js'
+import { seedDefaultJobs } from '../../jobs/seed.js'
 
 export function validateTelegramInitData(initData: string, botToken: string): boolean {
   const params = new URLSearchParams(initData)
@@ -34,10 +37,17 @@ export function validateTelegramInitData(initData: string, botToken: string): bo
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+// Register job types so the web server knows their schemas
+registerBuiltInJobTypes()
+
 // Run migrations on startup
 mkdirSync(DATA_DIR, { recursive: true })
+mkdirSync(join(DATA_DIR, 'images', 'outfits'), { recursive: true })
 const migrationsFolder = join(__dirname, '../../db/migrations')
 migrate(db, { migrationsFolder })
+
+// Seed default jobs (idempotent — only inserts if missing)
+seedDefaultJobs()
 
 const app = express()
 const PORT = parseInt(process.env.WEB_PORT ?? '3000', 10)
@@ -102,6 +112,7 @@ app.use('/api/outfits', authGuard, outfitsRouter)
 app.use('/api/weather', authGuard, weatherRouter)
 app.use('/api/user-photos', authGuard, userPhotosRouter)
 app.use('/api/tryon', authGuard, tryonRouter)
+app.use('/api/jobs', authGuard, jobsRouter)
 
 // Production: serve built SPA
 if (!isDev) {

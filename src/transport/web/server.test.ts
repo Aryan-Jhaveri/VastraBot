@@ -12,11 +12,6 @@ vi.mock('drizzle-orm/better-sqlite3/migrator', () => ({
   migrate: vi.fn(),
 }))
 
-vi.mock('fs', async () => {
-  const actual = await vi.importActual<typeof import('fs')>('fs')
-  return { ...actual, mkdirSync: vi.fn(), existsSync: vi.fn().mockReturnValue(true) }
-})
-
 vi.mock('../../storage/images.js', () => ({
   resolveImagePath: vi.fn((p: string) => `/tmp/closet-test/${p}`),
 }))
@@ -55,6 +50,20 @@ vi.mock('./routes/tryon.js', () => {
   r.post('/', (_req: any, res: any) => res.json({}))
   return { default: r }
 })
+
+vi.mock('./routes/jobs.js', () => {
+  const { Router } = require('express')
+  const r = Router()
+  return { default: r }
+})
+
+vi.mock('../../jobs/seed.js', () => ({
+  seedDefaultJobs: vi.fn(),
+}))
+
+vi.mock('../../jobs/types/index.js', () => ({
+  registerBuiltInJobTypes: vi.fn(),
+}))
 
 function makeInitData(botToken: string, params: Record<string, string> = {}): string {
   const entries = Object.entries({ user: '{"id":1}', ...params })

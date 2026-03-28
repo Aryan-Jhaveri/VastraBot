@@ -5,8 +5,19 @@ import express from 'express'
 vi.mock('../../../tools/outfits.js', () => ({
   createOutfit: vi.fn(),
   listOutfits: vi.fn(),
+  updateOutfit: vi.fn(),
   deleteOutfit: vi.fn(),
   markOutfitWorn: vi.fn(),
+}))
+
+vi.mock('../../../storage/images.js', () => ({
+  saveImageSquareCrop: vi.fn(),
+  deleteImage: vi.fn(),
+}))
+
+vi.mock('../../../db/queries.js', () => ({
+  updateOutfit: vi.fn(),
+  getOutfit: vi.fn(),
 }))
 
 vi.mock('../../../tools/items.js', () => ({
@@ -25,6 +36,8 @@ import * as outfitsTools from '../../../tools/outfits.js'
 import * as itemsTools from '../../../tools/items.js'
 import * as weatherTools from '../../../tools/weather.js'
 import * as suggestMod from '../../../ai/suggest.js'
+import * as imageStorage from '../../../storage/images.js'
+import * as queries from '../../../db/queries.js'
 import outfitsRouter from './outfits.js'
 
 function makeApp() {
@@ -44,7 +57,7 @@ const mockWeather = {
 }
 
 const mockItem = { id: 'item1', imageUri: 'images/items/a.jpg', category: 'tops' }
-const mockOutfit = { id: 'outfit1', name: 'Summer Look', itemIds: '["item1"]' }
+const mockOutfit = { id: 'outfit1', name: 'Summer Look', itemIds: '["item1"]', coverImageUri: null }
 
 describe('GET /', () => {
   it('lists outfits', async () => {
@@ -53,6 +66,16 @@ describe('GET /', () => {
     const res = await request(app).get('/')
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(1)
+  })
+
+  it('returns hydrated outfits when hydrate=true', async () => {
+    vi.mocked(outfitsTools.listOutfits).mockResolvedValue([mockOutfit] as any)
+    vi.mocked(itemsTools.listItems).mockResolvedValue([mockItem] as any)
+    const app = makeApp()
+    const res = await request(app).get('/?hydrate=true')
+    expect(res.status).toBe(200)
+    expect(res.body[0].items).toBeDefined()
+    expect(res.body[0].items[0].id).toBe('item1')
   })
 })
 
@@ -96,6 +119,71 @@ describe('POST /', () => {
       .send({ name: 'Summer Look', itemIds: ['item1'] })
     expect(res.status).toBe(201)
     expect(res.body.id).toBe('outfit1')
+  })
+})
+
+describe('PATCH /:id', () => {
+  it('updates outfit and returns 200', async () => {
+    vi.mocked(outfitsTools.updateOutfit).mockResolvedValue({ ...mockOutfit, name: 'Edited' } as any)
+    const app = makeApp()
+    const res = await request(app).patch('/outfit1').send({ name: 'Edited' })
+    expect(res.status).toBe(200)
+    expect(res.body.name).toBe('Edited')
+  })
+
+  it('returns 404 for missing outfit', async () => {
+    vi.mocked(outfitsTools.updateOutfit).mockRejectedValue(new Error('Outfit ghost not found'))
+    const app = makeApp()
+    const res = await request(app).patch('/ghost').send({ name: 'X' })
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('POST /:id/cover', () => {
+  it('saves cover image and returns updated outfit', async () => {
+    vi.mocked(imageStorage.saveImageSquareCrop).mockResolvedValue('images/outfits/abc.jpg')
+    vi.mocked(queries.updateOutfit).mockReturnValue({ ...mockOutfit, coverImageUri: 'images/outfits/abc.jpg' } as any)
+    const app = makeApp()
+    const res = await request(app)
+      .post('/outfit1/cover')
+      .attach('image', Buffer.from('fake'), 'cover.jpg')
+    expect(res.status).toBe(200)
+    expect(res.body.coverImageUri).toBe('images/outfits/abc.jpg')
+  })
+
+  it('returns 400 when no image provided', async () => {
+    const app = makeApp()
+    const res = await request(app).post('/outfit1/cover')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when outfit not found', async () => {
+    vi.mocked(imageStorage.saveImageSquareCrop).mockResolvedValue('images/outfits/abc.jpg')
+    vi.mocked(queries.updateOutfit).mockReturnValue(undefined)
+    const app = makeApp()
+    const res = await request(app)
+      .post('/ghost/cover')
+      .attach('image', Buffer.from('fake'), 'cover.jpg')
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('DELETE /:id/cover', () => {
+  it('removes cover image and returns updated outfit', async () => {
+    vi.mocked(queries.getOutfit).mockReturnValue({ ...mockOutfit, coverImageUri: 'images/outfits/abc.jpg' } as any)
+    vi.mocked(imageStorage.deleteImage).mockResolvedValue(undefined)
+    vi.mocked(queries.updateOutfit).mockReturnValue({ ...mockOutfit, coverImageUri: null } as any)
+    const app = makeApp()
+    const res = await request(app).delete('/outfit1/cover')
+    expect(res.status).toBe(200)
+    expect(res.body.coverImageUri).toBeNull()
+  })
+
+  it('returns 404 when outfit not found', async () => {
+    vi.mocked(queries.getOutfit).mockReturnValue(undefined)
+    const app = makeApp()
+    const res = await request(app).delete('/ghost/cover')
+    expect(res.status).toBe(404)
   })
 })
 

@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid'
 import sharp from 'sharp'
 import { DATA_DIR } from '../db/client.js'
 
-export type ImageFolder = 'items' | 'tags' | 'tryon' | 'user'
+export type ImageFolder = 'items' | 'tags' | 'tryon' | 'user' | 'outfits'
 
 const IMAGES_DIR = join(DATA_DIR, 'images')
 
@@ -35,6 +35,30 @@ export async function saveImage(
 
   await sharp(sourcePath)
     .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: JPEG_QUALITY })
+    .toFile(destPath)
+
+  return `images/${folder}/${destFilename}`
+}
+
+/**
+ * Save a base64-encoded image cropped to a square.
+ * Used for outfit cover photos so they fill the card grid consistently.
+ */
+export async function saveImageSquareCrop(
+  base64: string,
+  folder: ImageFolder,
+  size = 800,
+): Promise<string> {
+  const dir = await ensureDir(folder)
+  const id = nanoid()
+  const destFilename = `${id}.jpg`
+  const destPath = join(dir, destFilename)
+
+  const buffer = Buffer.from(base64, 'base64')
+
+  await sharp(buffer)
+    .resize(size, size, { fit: 'cover', position: 'centre' })
     .jpeg({ quality: JPEG_QUALITY })
     .toFile(destPath)
 

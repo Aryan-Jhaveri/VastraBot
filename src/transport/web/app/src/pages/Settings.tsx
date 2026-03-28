@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useLocation } from '../hooks/useLocation'
 import { Button } from '../components/ui/Button'
 
 export function Settings() {
+  const navigate = useNavigate()
   const { location, geocode, clearLocation } = useLocation()
   const [cityInput, setCityInput] = useState(location?.name ?? '')
   const [geoLoading, setGeoLoading] = useState(false)
@@ -47,6 +49,16 @@ export function Settings() {
         />
         <Button type="submit" variant="secondary" loading={geoLoading}>Update</Button>
       </form>
+
+      {/* Scheduled jobs */}
+      <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888] mt-6 mb-2 pb-1 border-b border-[#e0e0e0]">Automation</p>
+      <button
+        onClick={() => navigate('/jobs')}
+        className="border-b border-[#f0f0f0] py-3 flex items-center justify-between w-full text-left hover:bg-[#f8f8f8] transition-colors"
+      >
+        <p className="text-sm font-medium">Scheduled Jobs</p>
+        <span className="text-[9px] font-mono text-[#888]">→</span>
+      </button>
 
       {/* About section */}
       <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888] mt-6 mb-2 pb-1 border-b border-[#e0e0e0]">About</p>

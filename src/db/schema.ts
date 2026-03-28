@@ -33,6 +33,7 @@ export const outfits = sqliteTable('outfits', {
   aiGenerated: integer('ai_generated').default(0),
   weatherContext: text('weather_context'),
   notes: text('notes'),
+  coverImageUri: text('cover_image_uri'),
   timesWorn: integer('times_worn').default(0),
   lastWornAt: integer('last_worn_at'),
   createdAt: integer('created_at').notNull(),
@@ -52,5 +53,19 @@ export const tryonResults = sqliteTable('tryon_results', {
   outfitId: text('outfit_id'),
   itemIds: text('item_ids').notNull(),
   resultImageUri: text('result_image_uri').notNull(),
+  createdAt: integer('created_at').notNull(),
+})
+
+export const scheduledJobs = sqliteTable('scheduled_jobs', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  // registered key in the job registry (e.g. 'daily_outfit')
+  type: text('type').notNull(),
+  // cron expression ('0 8 * * *') or ISO 8601 date string for one-shot runs
+  schedule: text('schedule').notNull(),
+  // JSON blob — job-type-specific params (chatId, lat, lon, theme, etc.)
+  params: text('params').notNull().default('{}'),
+  enabled: integer('enabled').notNull().default(1),
+  lastRunAt: integer('last_run_at'),
   createdAt: integer('created_at').notNull(),
 })

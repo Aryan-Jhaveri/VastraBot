@@ -10,9 +10,15 @@ import { handleCloset, handleClosetCallback } from './commands/closet.js'
 import { handleOutfit } from './commands/outfit.js'
 import { handleWeather, handleLocationMessage, handleCityText } from './commands/weather.js'
 import { handleWorn } from './commands/worn.js'
+import { handleJobs, handleJobCallback } from './commands/jobs.js'
+import { handleSchedule } from './commands/schedule.js'
 import { addItemConversation } from './conversations/addItem.js'
 import { addUserPhotoConversation } from './conversations/addUserPhoto.js'
 import { tryonConversation } from './conversations/tryon.js'
+import { addJobConversation } from './conversations/addJob.js'
+import { registerBuiltInJobTypes } from '../../jobs/types/index.js'
+import { seedDefaultJobs } from '../../jobs/seed.js'
+import { initScheduler } from '../../jobs/scheduler.js'
 
 const token = process.env.TELEGRAM_BOT_TOKEN
 if (!token) {
@@ -21,6 +27,10 @@ if (!token) {
 }
 
 async function main() {
+  // Register built-in job types and seed defaults before bot starts
+  registerBuiltInJobTypes()
+  seedDefaultJobs()
+
   const bot = new Bot<BotContext>(token!)
 
   // ── Plugins ──────────────────────────────────────────────────────────────────
@@ -41,6 +51,7 @@ async function main() {
   bot.use(createConversation(addItemConversation, 'addItem'))
   bot.use(createConversation(addUserPhotoConversation, 'addUserPhoto'))
   bot.use(createConversation(tryonConversation, 'tryon'))
+  bot.use(createConversation(addJobConversation, 'addJob'))
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -53,6 +64,9 @@ async function main() {
   bot.command('outfit', handleOutfit)
   bot.command('weather', handleWeather)
   bot.command('worn', handleWorn)
+  bot.command('jobs', handleJobs)
+  bot.command('addjob', async ctx => { await ctx.conversation.enter('addJob') })
+  bot.command('schedule', handleSchedule)
 
   bot.command('add', async ctx => {
     await ctx.conversation.enter('addItem')
@@ -92,6 +106,8 @@ async function main() {
     const data = ctx.callbackQuery.data
     if (data.startsWith('filter:') || data.startsWith('page:')) {
       await handleClosetCallback(ctx)
+    } else if (data.startsWith('job:')) {
+      await handleJobCallback(ctx)
     } else {
       // Unhandled callback (e.g. stale buttons) — just dismiss spinner
       await ctx.answerCallbackQuery()
@@ -123,7 +139,10 @@ async function main() {
 
   console.log('Starting Closet bot...')
   await bot.start({
-    onStart: info => console.log(`Bot @${info.username} is running`),
+    onStart: info => {
+      console.log(`Bot @${info.username} is running`)
+      initScheduler(bot.api)
+    },
   })
 }
 

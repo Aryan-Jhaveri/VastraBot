@@ -10,8 +10,14 @@ export interface Outfit {
   aiGenerated: number
   weatherContext: string | null
   notes: string | null
+  coverImageUri: string | null
   timesWorn: number
+  lastWornAt: number | null
   createdAt: number
+}
+
+export interface HydratedOutfit extends Outfit {
+  items: Item[]
 }
 
 export interface OutfitSuggestion {
@@ -55,6 +61,27 @@ export async function createOutfit(data: {
     method: 'POST',
     body: JSON.stringify(data),
   })
+}
+
+export async function updateOutfit(id: string, data: { name?: string; occasion?: string; notes?: string }): Promise<Outfit> {
+  return apiFetchJSON(`/api/outfits/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function uploadOutfitCover(id: string, file: File): Promise<Outfit> {
+  const fd = new FormData()
+  fd.append('image', file)
+  return apiFetchJSON(`/api/outfits/${id}/cover`, { method: 'POST', body: fd })
+}
+
+export async function removeOutfitCover(id: string): Promise<Outfit> {
+  return apiFetchJSON(`/api/outfits/${id}/cover`, { method: 'DELETE' })
+}
+
+export async function fetchOutfitsHydrated(): Promise<HydratedOutfit[]> {
+  return apiFetchJSON('/api/outfits?hydrate=true')
 }
 
 export async function deleteOutfit(id: string): Promise<void> {

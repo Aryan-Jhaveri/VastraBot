@@ -5,6 +5,7 @@ import type { WeatherData, Item, OutfitSuggestion } from '../types/index.js'
 export async function suggestOutfits(
   weather: WeatherData,
   closetItems: Item[],
+  theme?: string,
 ): Promise<OutfitSuggestion[]> {
   const itemSummary = closetItems.map(i => ({
     id: i.id,
@@ -17,9 +18,11 @@ export async function suggestOutfits(
     occasion: JSON.parse(i.occasion ?? '[]'),
   }))
 
-  const prompt = `Today's weather: ${weather.temperature}°C, ${weather.condition}, ${weather.precipitation}mm rain expected, wind ${weather.windSpeed}km/h.
+  const themeClause = theme ? `\nAdditional context: ${theme}` : ''
 
-From the wardrobe below, suggest 2 outfit combinations appropriate for this weather.
+  const prompt = `Today's weather: ${weather.temperature}°C, ${weather.condition}, ${weather.precipitation}mm rain expected, wind ${weather.windSpeed}km/h.${themeClause}
+
+From the wardrobe below, suggest 2 outfit combinations appropriate for this weather${theme ? ' and the additional context above' : ''}.
 Return ONLY a valid JSON array with no markdown:
 [
   {

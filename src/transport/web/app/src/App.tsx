@@ -3,14 +3,17 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-do
 import { getToken, setToken, apiFetchJSON } from './api/client'
 import { Home } from './pages/Home'
 import { Closet } from './pages/Closet'
+import { Outfits } from './pages/Outfits'
 import { TryOn } from './pages/TryOn'
 import { Settings } from './pages/Settings'
+import { Jobs } from './pages/Jobs'
 import { Login } from './pages/Login'
 import { Spinner } from './components/ui/Spinner'
 
 const NAV_ITEMS = [
   { to: '/home', label: 'Home' },
   { to: '/closet', label: 'Closet' },
+  { to: '/outfits', label: 'Outfits' },
   { to: '/tryon', label: 'Try On' },
   { to: '/settings', label: 'Settings' },
 ]
@@ -98,7 +101,9 @@ export function App() {
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="/home" element={<Home />} />
           <Route path="/closet" element={<Closet />} />
+          <Route path="/outfits" element={<Outfits />} />
           <Route path="/tryon" element={<TryOn />} />
+          <Route path="/jobs" element={<Jobs />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
