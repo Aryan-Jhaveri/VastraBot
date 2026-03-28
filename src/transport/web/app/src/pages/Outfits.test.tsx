@@ -108,9 +108,9 @@ describe('Outfits page', () => {
     render(<Outfits />)
     await waitFor(() => screen.getByText('Casual Friday'))
 
-    // Filter by 'work' — click the filter button (role=button in CategoryFilter)
-    const workButtons = screen.getAllByText('work')
-    fireEvent.click(workButtons[0])
+    // Filter by 'work' via the occasion dropdown (FilterBar uses <select>)
+    const occasionSelect = screen.getByLabelText('Occasion')
+    fireEvent.change(occasionSelect, { target: { value: 'work' } })
     expect(screen.queryByText('Casual Friday')).not.toBeInTheDocument()
     expect(screen.getByText('Work Look')).toBeInTheDocument()
   })

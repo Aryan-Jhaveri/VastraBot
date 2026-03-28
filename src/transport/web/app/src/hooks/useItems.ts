@@ -4,6 +4,10 @@ import type { ItemsPage } from '../api/items'
 
 interface UseItemsOptions {
   category?: string
+  color?: string
+  season?: string
+  occasion?: string
+  brand?: string
   tags?: string[]
   page?: number
   limit?: number
@@ -28,7 +32,7 @@ export function useItems(opts: UseItemsOptions = {}) {
       setLoading(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opts.category, opts.page, opts.limit, tagsKey])
+  }, [opts.category, opts.color, opts.season, opts.occasion, opts.brand, opts.page, opts.limit, tagsKey])
 
   useEffect(() => {
     void load()

@@ -82,16 +82,12 @@ beforeEach(() => {
 describe('Upload extras step', () => {
   async function navigateToExtras() {
     renderTryOn()
-    // Wait for photos to load
+    // Wait for photos to load then proceed to step 2
     await waitFor(() => expect(screen.getByText('Select Items →')).toBeInTheDocument())
     fireEvent.click(screen.getByText('Select Items →'))
-    // Step 2: select an item
-    await waitFor(() => expect(screen.getByText('Next →')).toBeInTheDocument())
-    // Select item1
-    const itemCards = screen.getAllByRole('button')
-    const itemCard = itemCards.find(btn => btn.querySelector('img[src="/images/items/item1.jpg"]'))
-    if (itemCard) fireEvent.click(itemCard)
-    fireEvent.click(screen.getByText('Next →'))
+    // Step 2: click the "upload" tab
+    await waitFor(() => expect(screen.getByRole('button', { name: /^upload$/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /^upload$/i }))
     await waitFor(() => expect(screen.getByText(/Upload garment photos/i)).toBeInTheDocument())
   }
 
@@ -101,10 +97,10 @@ describe('Upload extras step', () => {
     expect(screen.getByText(/Generate Preview/i)).toBeInTheDocument()
   })
 
-  it('shows Generate button enabled when no uploads in progress', async () => {
+  it('shows Generate button disabled when no items selected and no uploads', async () => {
     await navigateToExtras()
     const generateBtn = screen.getByRole('button', { name: /Generate Preview/i })
-    expect(generateBtn).not.toBeDisabled()
+    expect(generateBtn).toBeDisabled()
   })
 
   it('disables Generate button while garment is uploading', async () => {

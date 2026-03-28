@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLocation as useRouterLocation } from 'react-router-dom'
 import { fetchUserPhotos, uploadUserPhoto, deleteUserPhoto } from '../api/userPhotos'
 import { fetchItems } from '../api/items'
@@ -9,6 +9,7 @@ import type { Item } from '../api/items'
 import type { HydratedOutfit } from '../api/outfits'
 import type { TryonHistoryItem } from '../api/tryon'
 import { ItemCard } from '../components/ItemCard'
+import { FilterBar } from '../components/FilterBar'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { cropToAspectRatio } from '../lib/cropImage'
@@ -45,6 +46,10 @@ export function TryOn() {
   const [itemsTab, setItemsTab] = useState<ItemsTab>('items')
   const [outfits, setOutfits] = useState<HydratedOutfit[]>([])
   const [loadingOutfits, setLoadingOutfits] = useState(false)
+
+  // Item filters (client-side, ITEMS tab only)
+  const [filterCategory, setFilterCategory] = useState('')
+  const [filterColor, setFilterColor] = useState('')
 
   // Garments
   const [uploadedGarments, setUploadedGarments] = useState<GarmentUpload[]>([])
@@ -107,6 +112,24 @@ export function TryOn() {
       .catch(err => setError(String(err)))
       .finally(() => setLoadingOutfits(false))
   }, [itemsTab])
+
+  // Filter options derived from full items array (not filteredItems, to avoid disappearing options)
+  const filterCategoryOptions = useMemo(
+    () => [...new Set(items.map(i => i.category))].sort(),
+    [items],
+  )
+  const filterColorOptions = useMemo(
+    () => [...new Set(items.map(i => i.primaryColor).filter(Boolean) as string[])].sort(),
+    [items],
+  )
+  const filteredItems = useMemo(
+    () => items
+      .filter(i => !filterCategory || i.category === filterCategory)
+      .filter(i => !filterColor || i.primaryColor === filterColor),
+    [items, filterCategory, filterColor],
+  )
+  const itemFilterValues = { category: filterCategory, color: filterColor }
+  const itemFilterCount = [filterCategory, filterColor].filter(Boolean).length
 
   async function handleDeletePhoto(id: string) {
     setDeletingPhotoId(id)
@@ -410,7 +433,10 @@ export function TryOn() {
             {(['items', 'outfits', 'upload'] as ItemsTab[]).map(tab => (
               <button
                 key={tab}
-                onClick={() => setItemsTab(tab)}
+                onClick={() => {
+                  if (tab !== 'items') { setFilterCategory(''); setFilterColor('') }
+                  setItemsTab(tab)
+                }}
                 className={`flex-1 py-2 text-[9px] font-bold font-mono uppercase tracking-[0.08em] transition-colors ${
                   itemsTab === tab ? 'bg-[#111] text-white' : 'text-[#888] hover:text-[#111]'
                 }`}
@@ -425,17 +451,37 @@ export function TryOn() {
             loadingItems ? (
               <div className="flex justify-center py-8"><Spinner /></div>
             ) : (
-              <div className="grid grid-cols-3 gap-[3px]">
-                {items.map(item => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    selectable
-                    selected={selectedItemIds.has(item.id)}
-                    onClick={() => toggleItem(item.id)}
+              <>
+                {items.length > 0 && (
+                  <FilterBar
+                    filters={[
+                      ...(filterCategoryOptions.length > 0 ? [{ key: 'category', label: 'Category', options: filterCategoryOptions }] : []),
+                      ...(filterColorOptions.length > 0 ? [{ key: 'color', label: 'Color', options: filterColorOptions }] : []),
+                    ]}
+                    values={itemFilterValues}
+                    onChange={(key, value) => {
+                      if (key === 'category') setFilterCategory(value)
+                      else if (key === 'color') setFilterColor(value)
+                    }}
+                    onClear={() => { setFilterCategory(''); setFilterColor('') }}
+                    activeCount={itemFilterCount}
                   />
-                ))}
-              </div>
+                )}
+                <div className="grid grid-cols-3 gap-[3px]">
+                  {filteredItems.map(item => (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      selectable
+                      selected={selectedItemIds.has(item.id)}
+                      onClick={() => toggleItem(item.id)}
+                    />
+                  ))}
+                  {filteredItems.length === 0 && itemFilterCount > 0 && (
+                    <p className="col-span-3 text-center py-8 text-[10px] font-mono text-[#888] uppercase tracking-[0.06em]">No items match filters.</p>
+                  )}
+                </div>
+              </>
             )
           )}
 

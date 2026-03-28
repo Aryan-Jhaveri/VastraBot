@@ -49,12 +49,20 @@ export interface TagData {
 
 export async function fetchItems(params: {
   category?: string
+  color?: string
+  season?: string
+  occasion?: string
+  brand?: string
   tags?: string[]
   page?: number
   limit?: number
 } = {}): Promise<ItemsPage> {
   const qs = new URLSearchParams()
   if (params.category) qs.set('category', params.category)
+  if (params.color) qs.set('color', params.color)
+  if (params.season) qs.set('season', params.season)
+  if (params.occasion) qs.set('occasion', params.occasion)
+  if (params.brand) qs.set('brand', params.brand)
   if (params.tags?.length) qs.set('tags', params.tags.join(','))
   if (params.page) qs.set('page', String(params.page))
   if (params.limit) qs.set('limit', String(params.limit))
