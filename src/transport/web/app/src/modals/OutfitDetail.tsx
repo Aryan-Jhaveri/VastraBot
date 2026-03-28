@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { updateOutfit, uploadOutfitCover, removeOutfitCover, deleteOutfit } from '../api/outfits'
 import type { HydratedOutfit } from '../api/outfits'
 import { Button } from '../components/ui/Button'
@@ -11,6 +12,7 @@ interface OutfitDetailProps {
 }
 
 export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: OutfitDetailProps) {
+  const navigate = useNavigate()
   const [outfit, setOutfit] = useState<HydratedOutfit>(initialOutfit)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(initialOutfit.name)
@@ -194,6 +196,16 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
 
           {/* Actions */}
           <div className="flex flex-col gap-2 border-t-2 border-[#111] pt-3">
+            <Button
+              onClick={() => {
+                onClose()
+                navigate('/tryon', { state: { outfitItemIds: outfit.items.map(i => i.id) } })
+              }}
+              variant="secondary"
+              className="w-full"
+            >
+              Try On →
+            </Button>
             {confirmDelete ? (
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={() => setConfirmDelete(false)} className="flex-1">Keep it</Button>

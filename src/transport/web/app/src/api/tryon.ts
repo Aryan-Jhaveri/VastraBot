@@ -1,13 +1,40 @@
-import { apiFetchJSON } from './client'
+import { apiFetch, apiFetchJSON } from './client'
 
 export interface TryonResult {
   resultImageUri: string
   tryonId: string
 }
 
-export async function generateTryOn(userPhotoId: string, itemIds: string[]): Promise<TryonResult> {
+export interface TryonHistoryItem {
+  id: string
+  userPhotoId: string
+  outfitId: string | null
+  itemIds: string  // JSON string
+  resultImageUri: string
+  createdAt: number
+}
+
+export async function generateTryOn(
+  userPhotoId: string,
+  itemIds: string[],
+  garmentUris?: string[],
+): Promise<TryonResult> {
   return apiFetchJSON('/api/tryon', {
     method: 'POST',
-    body: JSON.stringify({ userPhotoId, itemIds }),
+    body: JSON.stringify({ userPhotoId, itemIds, garmentUris }),
   })
+}
+
+export async function uploadGarment(file: File): Promise<{ imageUri: string }> {
+  const fd = new FormData()
+  fd.append('image', file)
+  return apiFetchJSON('/api/tryon/garments', { method: 'POST', body: fd })
+}
+
+export async function fetchTryonHistory(): Promise<TryonHistoryItem[]> {
+  return apiFetchJSON('/api/tryon')
+}
+
+export async function deleteTryonResult(id: string): Promise<void> {
+  await apiFetch(`/api/tryon/${id}`, { method: 'DELETE' })
 }

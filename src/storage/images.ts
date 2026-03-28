@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid'
 import sharp from 'sharp'
 import { DATA_DIR } from '../db/client.js'
 
-export type ImageFolder = 'items' | 'tags' | 'tryon' | 'user' | 'outfits'
+export type ImageFolder = 'items' | 'tags' | 'tryon' | 'user' | 'outfits' | 'garments'
 
 const IMAGES_DIR = join(DATA_DIR, 'images')
 

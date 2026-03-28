@@ -43,6 +43,7 @@ registerBuiltInJobTypes()
 // Run migrations on startup
 mkdirSync(DATA_DIR, { recursive: true })
 mkdirSync(join(DATA_DIR, 'images', 'outfits'), { recursive: true })
+mkdirSync(join(DATA_DIR, 'images', 'garments'), { recursive: true })
 const migrationsFolder = join(__dirname, '../../db/migrations')
 migrate(db, { migrationsFolder })
 
