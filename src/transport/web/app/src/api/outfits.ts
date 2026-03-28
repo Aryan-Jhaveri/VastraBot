@@ -54,6 +54,8 @@ export async function createOutfit(data: {
   name: string
   itemIds: string[]
   occasion?: string
+  season?: string[]
+  tags?: string[]
   notes?: string
   aiGenerated?: boolean
   weatherContext?: Record<string, unknown>
@@ -64,7 +66,7 @@ export async function createOutfit(data: {
   })
 }
 
-export async function updateOutfit(id: string, data: { name?: string; occasion?: string; notes?: string }): Promise<Outfit> {
+export async function updateOutfit(id: string, data: { name?: string; occasion?: string; season?: string[]; tags?: string[]; notes?: string }): Promise<Outfit> {
   return apiFetchJSON(`/api/outfits/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),

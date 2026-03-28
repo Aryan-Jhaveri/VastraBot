@@ -34,6 +34,7 @@ export const outfits = sqliteTable('outfits', {
   weatherContext: text('weather_context'),
   notes: text('notes'),
   coverImageUri: text('cover_image_uri'),
+  tags: text('tags').default('[]'),
   timesWorn: integer('times_worn').default(0),
   lastWornAt: integer('last_worn_at'),
   createdAt: integer('created_at').notNull(),

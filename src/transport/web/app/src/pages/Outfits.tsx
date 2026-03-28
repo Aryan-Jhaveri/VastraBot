@@ -14,6 +14,7 @@ export function Outfits() {
   const { outfits, loading, error, refetch } = useSavedOutfits()
   const [selectedOccasion, setSelectedOccasion] = useState('')
   const [selectedSeason, setSelectedSeason] = useState('')
+  const [selectedTag, setSelectedTag] = useState('')
   const [aiOnly, setAiOnly] = useState(false)
   const [detail, setDetail] = useState<HydratedOutfit | null>(null)
   const [building, setBuilding] = useState(false)
@@ -21,23 +22,31 @@ export function Outfits() {
   // Derive unique occasions from actual data
   const occasions = [...new Set(outfits.map(o => o.occasion).filter(Boolean) as string[])]
 
-  const filterValues = { occasion: selectedOccasion, season: selectedSeason }
-  const activeFilterCount = [selectedOccasion, selectedSeason].filter(Boolean).length + (aiOnly ? 1 : 0)
+  // Derive unique tags from actual data
+  const outfitTags = [...new Set(outfits.flatMap(o => {
+    try { return JSON.parse(o.tags || '[]') as string[] } catch { return [] }
+  }))].sort()
+
+  const filterValues = { occasion: selectedOccasion, season: selectedSeason, tag: selectedTag }
+  const activeFilterCount = [selectedOccasion, selectedSeason, selectedTag].filter(Boolean).length + (aiOnly ? 1 : 0)
 
   function handleFilterChange(key: string, value: string) {
     if (key === 'occasion') setSelectedOccasion(value)
     else if (key === 'season') setSelectedSeason(value)
+    else if (key === 'tag') setSelectedTag(value)
   }
 
   function clearFilters() {
     setSelectedOccasion('')
     setSelectedSeason('')
+    setSelectedTag('')
     setAiOnly(false)
   }
 
   const filterConfigs = [
     ...(occasions.length > 0 ? [{ key: 'occasion', label: 'Occasion', options: occasions }] : []),
     { key: 'season', label: 'Season', options: SEASONS },
+    ...(outfitTags.length > 0 ? [{ key: 'tag', label: 'Tag', options: outfitTags }] : []),
   ]
 
   const filtered = outfits.filter(o => {
@@ -46,6 +55,11 @@ export function Outfits() {
       let seasons: string[] = []
       try { seasons = JSON.parse(o.season || '[]') as string[] } catch { /* ignore */ }
       if (!seasons.includes(selectedSeason)) return false
+    }
+    if (selectedTag) {
+      let tags: string[] = []
+      try { tags = JSON.parse(o.tags || '[]') as string[] } catch { /* ignore */ }
+      if (!tags.includes(selectedTag)) return false
     }
     if (aiOnly && !o.aiGenerated) return false
     return true

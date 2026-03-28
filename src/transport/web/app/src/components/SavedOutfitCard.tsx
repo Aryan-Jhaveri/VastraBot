@@ -7,6 +7,8 @@ interface SavedOutfitCardProps {
 
 export function SavedOutfitCard({ outfit, onClick }: SavedOutfitCardProps) {
   const thumbnails = outfit.items.slice(0, 4)
+  const seasons: string[] = (() => { try { return JSON.parse(outfit.season || '[]') } catch { return [] } })()
+  const tags: string[] = (() => { try { return JSON.parse(outfit.tags || '[]') } catch { return [] } })()
 
   return (
     <button
@@ -34,7 +36,6 @@ export function SavedOutfitCard({ outfit, onClick }: SavedOutfitCardProps) {
                 />
               </div>
             ))}
-            {/* Fill empty cells */}
             {Array.from({ length: Math.max(0, 4 - thumbnails.length) }).map((_, i) => (
               <div key={`empty-${i}`} className="bg-[#f8f8f8]" />
             ))}
@@ -51,12 +52,27 @@ export function SavedOutfitCard({ outfit, onClick }: SavedOutfitCardProps) {
           {outfit.occasion && (
             <span className="text-[7px] font-mono text-[#888] capitalize">{outfit.occasion}</span>
           )}
+          {seasons.length > 0 && (
+            <span className="text-[7px] font-mono text-[#888] capitalize">
+              {outfit.occasion ? '· ' : ''}{seasons.join(' · ')}
+            </span>
+          )}
           {outfit.aiGenerated === 1 && (
             <span className="text-[6px] font-bold font-mono uppercase tracking-[0.06em] border border-[#111] px-1">
               AI
             </span>
           )}
         </div>
+        {tags.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap mt-0.5">
+            {tags.slice(0, 2).map(t => (
+              <span key={t} className="text-[6px] font-mono uppercase tracking-[0.04em] border border-[#888] px-1 text-[#888]">{t}</span>
+            ))}
+            {tags.length > 2 && (
+              <span className="text-[6px] font-mono text-[#888]">+{tags.length - 2}</span>
+            )}
+          </div>
+        )}
       </div>
     </button>
   )

@@ -25,9 +25,10 @@ export type ItemParsed = Omit<Item, 'colors' | 'careInstructions' | 'season' | '
   occasion: string[]
 }
 
-export type OutfitParsed = Omit<Outfit, 'itemIds' | 'season' | 'weatherContext'> & {
+export type OutfitParsed = Omit<Outfit, 'itemIds' | 'season' | 'tags' | 'weatherContext'> & {
   itemIds: string[]
   season: string[]
+  tags: string[]
   weatherContext: Record<string, unknown> | null
 }
 
@@ -100,6 +101,7 @@ export const CreateOutfitInputSchema = z.object({
   itemIds: z.array(z.string()).min(1),
   occasion: z.string().optional(),
   season: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
   notes: z.string().optional(),
   aiGenerated: z.boolean().optional(),
   weatherContext: z.record(z.unknown()).optional(),
@@ -109,6 +111,8 @@ export type CreateOutfitInput = z.infer<typeof CreateOutfitInputSchema>
 export const UpdateOutfitInputSchema = z.object({
   name: z.string().min(1).optional(),
   occasion: z.string().optional(),
+  season: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
   notes: z.string().optional(),
 })
 export type UpdateOutfitInput = z.infer<typeof UpdateOutfitInputSchema>

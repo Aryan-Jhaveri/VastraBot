@@ -5,6 +5,8 @@ import type { HydratedOutfit } from '../api/outfits'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 
+const SEASONS = ['spring', 'summer', 'fall', 'winter', 'all']
+
 interface OutfitDetailProps {
   outfit: HydratedOutfit
   onClose: () => void
@@ -18,6 +20,7 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
   const [nameInput, setNameInput] = useState(initialOutfit.name)
   const [editingOccasion, setEditingOccasion] = useState(false)
   const [occasionInput, setOccasionInput] = useState(initialOutfit.occasion ?? '')
+  const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
   const [removingCover, setRemovingCover] = useState(false)
@@ -25,6 +28,9 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
+
+  const currentSeasons: string[] = (() => { try { return JSON.parse(outfit.season || '[]') } catch { return [] } })()
+  const currentTags: string[] = (() => { try { return JSON.parse(outfit.tags || '[]') } catch { return [] } })()
 
   async function saveName() {
     if (!nameInput.trim() || nameInput === outfit.name) { setEditingName(false); return }
@@ -48,6 +54,38 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
       onChanged()
     } catch (err) { setError(String(err)) }
     finally { setSaving(false) }
+  }
+
+  async function toggleSeason(s: string) {
+    const next = currentSeasons.includes(s)
+      ? currentSeasons.filter(x => x !== s)
+      : [...currentSeasons, s]
+    try {
+      const updated = await updateOutfit(outfit.id, { season: next })
+      setOutfit(o => ({ ...o, ...updated }))
+      onChanged()
+    } catch (err) { setError(String(err)) }
+  }
+
+  async function addTag(raw: string) {
+    const t = raw.trim().toLowerCase()
+    if (!t || currentTags.includes(t)) { setTagInput(''); return }
+    const next = [...currentTags, t]
+    try {
+      const updated = await updateOutfit(outfit.id, { tags: next })
+      setOutfit(o => ({ ...o, ...updated }))
+      setTagInput('')
+      onChanged()
+    } catch (err) { setError(String(err)) }
+  }
+
+  async function removeTag(t: string) {
+    const next = currentTags.filter(x => x !== t)
+    try {
+      const updated = await updateOutfit(outfit.id, { tags: next })
+      setOutfit(o => ({ ...o, ...updated }))
+      onChanged()
+    } catch (err) { setError(String(err)) }
   }
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -86,7 +124,12 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
         <div className="flex items-center justify-between p-4 border-b-2 border-[#111]">
           <button onClick={onClose} className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:text-[#888]">←</button>
           <span className="text-[9px] font-bold font-mono uppercase tracking-[0.08em]">Outfit</span>
-          <div className="w-8" />
+          <button
+            onClick={() => setEditingName(true)}
+            className="border-2 border-[#111] px-2 py-0.5 text-[8px] font-bold font-mono uppercase tracking-[0.06em] hover:bg-[#f0f0f0]"
+          >
+            Edit
+          </button>
         </div>
 
         <div className="flex flex-col gap-4 p-4">
@@ -176,6 +219,45 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
             )}
           </div>
 
+          {/* Season */}
+          <div>
+            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Season</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {SEASONS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => toggleSeason(s)}
+                  className={`px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] border-2 border-[#111] transition-colors capitalize ${
+                    currentSeasons.includes(s) ? 'bg-[#111] text-white' : 'bg-white text-[#111] hover:bg-[#f0f0f0]'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Tags</p>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {currentTags.map(t => (
+                <span key={t} className="flex items-center gap-1 border-2 border-[#111] px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em]">
+                  {t}
+                  <button onClick={() => removeTag(t)} className="text-[#888] hover:text-[#111] leading-none font-bold">×</button>
+                </span>
+              ))}
+            </div>
+            <input
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); void addTag(tagInput) } }}
+              onBlur={() => { if (tagInput.trim()) void addTag(tagInput) }}
+              placeholder="Add tag, press Enter"
+              className="w-full border-2 border-[#111] px-3 py-1.5 text-[9px] font-mono outline-none focus:bg-[#f0f0f0] placeholder:text-[#888] placeholder:normal-case"
+            />
+          </div>
+
           {/* Item strip */}
           <div>
             <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">
@@ -194,7 +276,7 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
             </div>
           </div>
 
-          {/* Care notes — aggregated from item care instructions */}
+          {/* Care notes */}
           {outfit.items.some(i => {
             try { return (JSON.parse(i.careInstructions || '[]') as string[]).length > 0 } catch { return false }
           }) && (

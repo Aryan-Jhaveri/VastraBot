@@ -5,6 +5,8 @@ import { ItemCard } from '../components/ItemCard'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 
+const SEASONS = ['spring', 'summer', 'fall', 'winter', 'all']
+
 interface OutfitBuilderProps {
   onClose: () => void
   onCreated: () => void
@@ -16,6 +18,8 @@ export function OutfitBuilder({ onClose, onCreated }: OutfitBuilderProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [name, setName] = useState('')
   const [occasion, setOccasion] = useState('')
+  const [selectedSeasons, setSelectedSeasons] = useState<string[]>([])
+  const [tagsInput, setTagsInput] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -26,15 +30,24 @@ export function OutfitBuilder({ onClose, onCreated }: OutfitBuilderProps) {
     )
   }
 
+  function toggleSeason(s: string) {
+    setSelectedSeasons(prev =>
+      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+    )
+  }
+
   async function handleCreate() {
     if (!name.trim()) { setError('Name is required'); return }
     setSaving(true)
     setError(null)
+    const tags = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
     try {
       await createOutfit({
         name: name.trim(),
         itemIds: selectedIds,
         occasion: occasion.trim() || undefined,
+        season: selectedSeasons.length ? selectedSeasons : undefined,
+        tags: tags.length ? tags : undefined,
         notes: notes.trim() || undefined,
       })
       onCreated()
@@ -129,21 +142,69 @@ export function OutfitBuilder({ onClose, onCreated }: OutfitBuilderProps) {
               </div>
             </div>
 
-            {[
-              { label: 'Name *', value: name, set: setName, placeholder: 'e.g. Weekend Casual' },
-              { label: 'Occasion', value: occasion, set: setOccasion, placeholder: 'e.g. casual, work, formal' },
-              { label: 'Notes', value: notes, set: setNotes, placeholder: 'Optional notes…' },
-            ].map(({ label, value, set, placeholder }) => (
-              <div key={label} className="flex flex-col gap-1">
-                <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">{label}</label>
-                <input
-                  value={value}
-                  onChange={e => set(e.target.value)}
-                  placeholder={placeholder}
-                  className="border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
-                />
+            {/* Name */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Name *</label>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Weekend Casual"
+                className="border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
+              />
+            </div>
+
+            {/* Occasion */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Occasion</label>
+              <input
+                value={occasion}
+                onChange={e => setOccasion(e.target.value)}
+                placeholder="e.g. casual, work, formal"
+                className="border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
+              />
+            </div>
+
+            {/* Season */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Season</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {SEASONS.map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleSeason(s)}
+                    className={`px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] border-2 border-[#111] transition-colors capitalize ${
+                      selectedSeasons.includes(s) ? 'bg-[#111] text-white' : 'bg-white text-[#111] hover:bg-[#f0f0f0]'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Tags */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Tags</label>
+              <input
+                value={tagsInput}
+                onChange={e => setTagsInput(e.target.value)}
+                placeholder="vintage, minimalist, monochrome"
+                className="border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
+              />
+              <p className="text-[7px] font-mono text-[#888] uppercase tracking-[0.06em]">Comma-separated</p>
+            </div>
+
+            {/* Notes */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Notes</label>
+              <input
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Optional notes…"
+                className="border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
+              />
+            </div>
 
             <Button onClick={handleCreate} loading={saving} className="w-full mt-2">
               Save Outfit

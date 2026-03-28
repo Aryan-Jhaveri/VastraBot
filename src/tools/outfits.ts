@@ -7,6 +7,7 @@ export async function createOutfit(input: CreateOutfitInput): Promise<Outfit> {
     itemIds: JSON.stringify(input.itemIds),
     occasion: input.occasion,
     season: JSON.stringify(input.season ?? []),
+    tags: JSON.stringify(input.tags ?? []),
     aiGenerated: input.aiGenerated ? 1 : 0,
     weatherContext: input.weatherContext ? JSON.stringify(input.weatherContext) : undefined,
     notes: input.notes,
@@ -36,7 +37,11 @@ export async function deleteOutfit(id: string): Promise<void> {
 }
 
 export async function updateOutfit(id: string, input: UpdateOutfitInput): Promise<Outfit> {
-  const updated = queries.updateOutfit(id, input)
+  const { season, tags, ...rest } = input
+  const dbData: Record<string, unknown> = { ...rest }
+  if (season !== undefined) dbData.season = JSON.stringify(season)
+  if (tags !== undefined) dbData.tags = JSON.stringify(tags)
+  const updated = queries.updateOutfit(id, dbData as Parameters<typeof queries.updateOutfit>[1])
   if (!updated) throw new Error(`Outfit ${id} not found`)
   return updated
 }
