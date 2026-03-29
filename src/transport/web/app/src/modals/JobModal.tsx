@@ -182,6 +182,9 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
     })()
   )
   const [theme, setTheme] = useState((existingParams.theme as string) ?? '')
+  const [chatId, setChatId] = useState<string>(
+    String((existingParams.chatId as number) || localStorage.getItem('closet-telegram-chat-id') || '')
+  )
   const [geoError, setGeoError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -218,7 +221,14 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
           return
         }
 
-        params = { chatId: 0, lat: loc.lat, lon: loc.lon, locationName: loc.name, ...(theme.trim() ? { theme: theme.trim() } : {}) }
+        const chatIdNum = parseInt(chatId.trim(), 10)
+        if (!chatIdNum) {
+          setGeoError('Enter your Telegram Chat ID')
+          setSaving(false)
+          return
+        }
+        localStorage.setItem('closet-telegram-chat-id', chatId.trim())
+        params = { chatId: chatIdNum, lat: loc.lat, lon: loc.lon, locationName: loc.name, ...(theme.trim() ? { theme: theme.trim() } : {}) }
       }
 
       const saved = isEdit
@@ -276,6 +286,17 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
                   error={geoError ?? undefined}
                 />
                 <p className="text-[9px] font-mono text-[#aaa]">Used for weather lookup</p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Input
+                  label="Telegram Chat ID"
+                  value={chatId}
+                  onChange={e => setChatId(e.target.value)}
+                  placeholder="e.g. 123456789"
+                />
+                <p className="text-[9px] font-mono text-[#aaa]">
+                  Send <span className="text-[#555]">/start</span> to @userinfobot on Telegram to get your ID
+                </p>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888]">
