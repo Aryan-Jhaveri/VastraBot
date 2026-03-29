@@ -123,6 +123,13 @@ app.use('/images', authGuard, (req, res) => {
   res.sendFile(relativePath, { root: DATA_DIR })
 })
 
+// Config endpoint — exposes non-secret server-side config to the frontend
+app.get('/api/config', authGuard, (_req, res) => {
+  res.json({
+    telegramChatId: parseInt(process.env.TELEGRAM_ALLOWED_USER_ID ?? '0', 10) || null,
+  })
+})
+
 // API routes — all guarded
 app.use('/api/items', authGuard, itemsRouter)
 app.use('/api/outfits', authGuard, outfitsRouter)
