@@ -94,9 +94,10 @@ router.patch('/:id', async (req, res) => {
 router.post('/:id/cover', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image provided' })
+    const outfitId = String(req.params.id)
     const base64 = req.file.buffer.toString('base64')
     const coverImageUri = await saveImageSquareCrop(base64, 'outfits')
-    const outfit = dbUpdateOutfit(req.params.id, { coverImageUri })
+    const outfit = dbUpdateOutfit(outfitId, { coverImageUri })
     if (!outfit) return res.status(404).json({ error: 'Outfit not found' })
     res.json(outfit)
   } catch (err) {

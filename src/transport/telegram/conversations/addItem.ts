@@ -10,7 +10,7 @@ import type { BotContext } from '../context.js'
 import type { ItemClassification } from '../../../types/index.js'
 
 export async function addItemConversation(
-  conversation: Conversation<BotContext>,
+  conversation: Conversation<BotContext, BotContext>,
   ctx: BotContext,
 ): Promise<void> {
   // If started via /add command, prompt for photo
@@ -113,6 +113,7 @@ export async function addItemConversation(
     savedItem = await conversation.external(() =>
       addItem({
         imageBase64: base64,
+        autoAnalyze: false,
         category: classification.category,
         subcategory: classification.subcategory,
         primaryColor: classification.primary_color,

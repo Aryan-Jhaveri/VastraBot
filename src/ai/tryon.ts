@@ -46,6 +46,7 @@ export async function generateTryOn(
     config: { responseModalities: ['IMAGE', 'TEXT'] },
   })
 
-  const { data } = extractGeminiImage(response)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = extractGeminiImage(response as any)
   return saveImageFromBase64(data, 'tryon')
 }

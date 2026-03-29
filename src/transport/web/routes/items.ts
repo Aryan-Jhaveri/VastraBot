@@ -66,6 +66,7 @@ router.post('/', upload.single('image'), async (req, res) => {
 
     const { item } = await addItem({
       imageBase64: base64,
+      autoAnalyze: false,
       category: body.category || undefined,
       subcategory: body.subcategory || undefined,
       primaryColor: body.primaryColor || undefined,
@@ -128,7 +129,8 @@ router.post('/:id/worn', async (req, res) => {
 router.post('/:id/tag', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image provided' })
-    const current = await getItem(req.params.id)
+    const itemId = String(req.params.id)
+    const current = await getItem(itemId)
     if (!current) return res.status(404).json({ error: 'Not found' })
 
     const base64 = req.file.buffer.toString('base64')
@@ -149,7 +151,7 @@ router.post('/:id/tag', upload.single('image'), async (req, res) => {
       patch.careInstructions = JSON.stringify(tagData.care_instructions)
     }
 
-    const item = dbUpdateItem(req.params.id, patch)
+    const item = dbUpdateItem(itemId, patch)
     res.json({ item, tagData })
   } catch (err) {
     res.status(500).json({ error: String(err) })

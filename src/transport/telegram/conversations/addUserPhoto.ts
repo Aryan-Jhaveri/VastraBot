@@ -5,7 +5,7 @@ import { getPhotoUrl, downloadPhotoAsBase64 } from '../download.js'
 import type { BotContext } from '../context.js'
 
 export async function addUserPhotoConversation(
-  conversation: Conversation<BotContext>,
+  conversation: Conversation<BotContext, BotContext>,
   ctx: BotContext,
 ): Promise<void> {
   await ctx.reply(

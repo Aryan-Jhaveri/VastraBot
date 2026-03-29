@@ -105,7 +105,7 @@ export const CreateOutfitInputSchema = z.object({
   tags: z.array(z.string()).optional(),
   notes: z.string().optional(),
   aiGenerated: z.boolean().optional(),
-  weatherContext: z.record(z.unknown()).optional(),
+  weatherContext: z.record(z.string(), z.unknown()).optional(),
 })
 export type CreateOutfitInput = z.infer<typeof CreateOutfitInputSchema>
 

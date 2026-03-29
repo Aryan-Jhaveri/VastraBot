@@ -14,7 +14,7 @@ function isValidCronOrDate(value: string): boolean {
 }
 
 export async function addJobConversation(
-  conversation: Conversation<BotContext>,
+  conversation: Conversation<BotContext, BotContext>,
   ctx: BotContext,
 ): Promise<void> {
   // ── Step 1: Choose job type ───────────────────────────────────────────────

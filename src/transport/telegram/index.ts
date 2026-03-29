@@ -6,8 +6,8 @@ import '../../db/migrate.js'
 import type { BotContext, SessionData } from './context.js'
 import { authGuard } from './middleware.js'
 import { handleStart } from './commands/start.js'
-import { handleCloset, handleClosetCallback } from './commands/closet.js'
 import { handleOutfit } from './commands/outfit.js'
+import { handleAgentMessage } from './commands/chat.js'
 import { handleWeather, handleLocationMessage, handleCityText } from './commands/weather.js'
 import { handleWorn } from './commands/worn.js'
 import { handleJobs, handleJobCallback } from './commands/jobs.js'
@@ -59,12 +59,21 @@ async function main() {
 
   // ── Commands ─────────────────────────────────────────────────────────────────
 
+  // Guard-enter: prevents silently overwriting an active conversation
+  async function guardEnter(ctx: BotContext, name: string): Promise<void> {
+    const active = await ctx.conversation.active()
+    if (Object.keys(active).length > 0) {
+      await ctx.reply("You're in the middle of something. Send /cancel to exit first.")
+      return
+    }
+    await ctx.conversation.enter(name)
+  }
+
   bot.command('start', handleStart)
   bot.command('cancel', async ctx => {
-    await ctx.conversation.exit()
+    await ctx.conversation.exitAll()
     await ctx.reply('Cancelled.')
   })
-  bot.command('closet', handleCloset)
   bot.command('outfit', handleOutfit)
   bot.command('weather', handleWeather)
   bot.command('worn', handleWorn)
@@ -73,15 +82,15 @@ async function main() {
   bot.command('schedule', handleSchedule)
 
   bot.command('add', async ctx => {
-    await ctx.conversation.enter('addItem')
+    await guardEnter(ctx, 'addItem')
   })
 
   bot.command('myphoto', async ctx => {
-    await ctx.conversation.enter('addUserPhoto')
+    await guardEnter(ctx, 'addUserPhoto')
   })
 
   bot.command('tryon', async ctx => {
-    await ctx.conversation.enter('tryon')
+    await guardEnter(ctx, 'tryon')
   })
 
   // ── Photo messages → addItem conversation ─────────────────────────────────
@@ -100,7 +109,12 @@ async function main() {
     if (ctx.session.awaitingLocation) {
       await handleCityText(ctx)
     } else {
-      await next()
+      const active = await ctx.conversation.active()
+      if (Object.keys(active).length === 0) {
+        await handleAgentMessage(ctx)
+      } else {
+        await next()
+      }
     }
   })
 
@@ -108,9 +122,7 @@ async function main() {
 
   bot.on('callback_query:data', async ctx => {
     const data = ctx.callbackQuery.data
-    if (data.startsWith('filter:') || data.startsWith('page:')) {
-      await handleClosetCallback(ctx)
-    } else if (data.startsWith('job:')) {
+    if (data.startsWith('job:')) {
       await handleJobCallback(ctx)
     } else {
       // Unhandled callback (e.g. stale buttons) — just dismiss spinner

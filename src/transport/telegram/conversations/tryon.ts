@@ -9,7 +9,7 @@ import type { BotContext } from '../context.js'
 import type { Item } from '../../../types/index.js'
 
 export async function tryonConversation(
-  conversation: Conversation<BotContext>,
+  conversation: Conversation<BotContext, BotContext>,
   ctx: BotContext,
 ): Promise<void> {
   // Check for user reference photo
@@ -43,7 +43,7 @@ export async function tryonConversation(
   // Wait for picks
   while (true) {
     ctx = await conversation.waitFor('callback_query:data')
-    const data = ctx.callbackQuery!.data
+    const data = ctx.callbackQuery?.data ?? ''
 
     if (data === 'pick:done') {
       await ctx.answerCallbackQuery()
