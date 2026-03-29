@@ -13,17 +13,7 @@ export async function handleOutfit(ctx: BotContext): Promise<void> {
   const { lat, lon } = ctx.session
 
   if (lat === undefined || lon === undefined) {
-    ctx.session.awaitingLocation = true
-    await ctx.reply(
-      'Where are you? Type a city name (e.g. "Toronto") or tap Share my location on mobile:',
-      {
-        reply_markup: {
-          keyboard: [[{ text: '📍 Share my location', request_location: true }]],
-          resize_keyboard: true,
-          one_time_keyboard: true,
-        },
-      },
-    )
+    await ctx.reply('Set your location first with /weather, then run /outfit again.')
     return
   }
 
