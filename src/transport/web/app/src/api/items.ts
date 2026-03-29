@@ -8,6 +8,7 @@ export interface Item {
   primaryColor: string | null
   colors: string        // JSON string — parse client-side as needed
   material: string | null
+  materialSource: 'ocr' | 'manual' | null
   careInstructions: string
   brand: string | null
   size: string | null

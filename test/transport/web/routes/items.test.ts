@@ -199,4 +199,43 @@ describe('POST /:id/tag', () => {
     expect(res.status).toBe(200)
     expect(res.body.tagData.brand).toBe("Levi's")
   })
+
+  it('sets materialSource to ocr when material_composition is present', async () => {
+    const mockTag = { brand: null, size: null, material_composition: '100% wool', care_instructions: [], country_of_origin: null }
+    vi.mocked(itemsTools.getItem).mockResolvedValue(mockItem as any)
+    vi.mocked(scanTagMod.scanTag).mockResolvedValue(mockTag as any)
+    vi.mocked(imageStorage.saveImageFromBase64).mockResolvedValue('images/tags/abc.jpg')
+    vi.mocked(queries.updateItem).mockReturnValue({ ...mockItem, material: '100% wool', materialSource: 'ocr' } as any)
+    const app = makeApp()
+    await request(app)
+      .post('/item1/tag')
+      .attach('image', Buffer.from('fake-tag'), 'tag.jpg')
+    expect(queries.updateItem).toHaveBeenCalledWith(
+      'item1',
+      expect.objectContaining({ material: '100% wool', materialSource: 'ocr' }),
+    )
+  })
+})
+
+describe('PATCH /:id — materialSource', () => {
+  it('sets materialSource to manual when material is in the request body', async () => {
+    vi.mocked(itemsTools.updateItem).mockResolvedValue({ ...mockItem, material: 'silk', materialSource: 'manual' } as any)
+    const app = makeApp()
+    const res = await request(app).patch('/item1').send({ material: 'silk' })
+    expect(res.status).toBe(200)
+    expect(itemsTools.updateItem).toHaveBeenCalledWith(
+      'item1',
+      expect.objectContaining({ material: 'silk', materialSource: 'manual' }),
+    )
+  })
+
+  it('does not set materialSource when material is absent from body', async () => {
+    vi.mocked(itemsTools.updateItem).mockResolvedValue({ ...mockItem, brand: 'Zara' } as any)
+    const app = makeApp()
+    await request(app).patch('/item1').send({ brand: 'Zara' })
+    expect(itemsTools.updateItem).toHaveBeenCalledWith(
+      'item1',
+      expect.not.objectContaining({ materialSource: expect.anything() }),
+    )
+  })
 })

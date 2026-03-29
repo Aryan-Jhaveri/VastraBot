@@ -5,6 +5,8 @@ import type { HydratedOutfit } from '../api/outfits'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { ChipToggle } from '../components/ui/ChipToggle'
+import { InlineField } from '../components/ui/InlineField'
+import { TagEditor } from '../components/ui/TagEditor'
 
 const SEASONS = ['spring', 'summer', 'fall', 'winter', 'all']
 
@@ -17,14 +19,6 @@ interface OutfitDetailProps {
 export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: OutfitDetailProps) {
   const navigate = useNavigate()
   const [outfit, setOutfit] = useState<HydratedOutfit>(initialOutfit)
-  const [editingName, setEditingName] = useState(false)
-  const [nameInput, setNameInput] = useState(initialOutfit.name)
-  const [editingOccasion, setEditingOccasion] = useState(false)
-  const [occasionInput, setOccasionInput] = useState(initialOutfit.occasion ?? '')
-  const [editingNotes, setEditingNotes] = useState(false)
-  const [notesInput, setNotesInput] = useState(initialOutfit.notes ?? '')
-  const [tagInput, setTagInput] = useState('')
-  const [saving, setSaving] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
   const [removingCover, setRemovingCover] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -35,58 +29,9 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
   const currentSeasons: string[] = (() => { try { return JSON.parse(outfit.season || '[]') } catch { return [] } })()
   const currentTags: string[] = (() => { try { return JSON.parse(outfit.tags || '[]') } catch { return [] } })()
 
-  async function saveName() {
-    if (!nameInput.trim() || nameInput === outfit.name) { setEditingName(false); return }
-    setSaving(true)
+  async function patchOutfit(data: Parameters<typeof updateOutfit>[1]) {
     try {
-      const updated = await updateOutfit(outfit.id, { name: nameInput.trim() })
-      setOutfit(o => ({ ...o, ...updated }))
-      setEditingName(false)
-      onChanged()
-    } catch (err) { setError(String(err)) }
-    finally { setSaving(false) }
-  }
-
-  async function saveOccasion() {
-    if (occasionInput === outfit.occasion) { setEditingOccasion(false); return }
-    setSaving(true)
-    try {
-      const updated = await updateOutfit(outfit.id, { occasion: occasionInput || undefined })
-      setOutfit(o => ({ ...o, ...updated }))
-      setEditingOccasion(false)
-      onChanged()
-    } catch (err) { setError(String(err)) }
-    finally { setSaving(false) }
-  }
-
-  async function saveNotes() {
-    if (notesInput === (outfit.notes ?? '')) { setEditingNotes(false); return }
-    setSaving(true)
-    try {
-      const updated = await updateOutfit(outfit.id, { notes: notesInput || undefined })
-      setOutfit(o => ({ ...o, ...updated }))
-      setEditingNotes(false)
-      onChanged()
-    } catch (err) { setError(String(err)) }
-    finally { setSaving(false) }
-  }
-
-  async function addTag(raw: string) {
-    const t = raw.trim().toLowerCase()
-    if (!t || currentTags.includes(t)) { setTagInput(''); return }
-    const next = [...currentTags, t]
-    try {
-      const updated = await updateOutfit(outfit.id, { tags: next })
-      setOutfit(o => ({ ...o, ...updated }))
-      setTagInput('')
-      onChanged()
-    } catch (err) { setError(String(err)) }
-  }
-
-  async function removeTag(t: string) {
-    const next = currentTags.filter(x => x !== t)
-    try {
-      const updated = await updateOutfit(outfit.id, { tags: next })
+      const updated = await updateOutfit(outfit.id, data)
       setOutfit(o => ({ ...o, ...updated }))
       onChanged()
     } catch (err) { setError(String(err)) }
@@ -171,52 +116,25 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
             )}
           </div>
 
-          {/* Name */}
-          <div>
-            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Name</p>
-            {editingName ? (
-              <div className="flex gap-2">
-                <input
-                  autoFocus
-                  value={nameInput}
-                  onChange={e => setNameInput(e.target.value)}
-                  onBlur={saveName}
-                  onKeyDown={e => e.key === 'Enter' && saveName()}
-                  className="flex-1 border-2 border-[#111] px-3 py-1.5 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
-                />
-                <Button onClick={saveName} loading={saving} className="shrink-0">Save</Button>
-              </div>
-            ) : (
-              <button onClick={() => setEditingName(true)} className="flex items-center gap-2 group">
-                <span className="font-bold text-base">{outfit.name}</span>
-                <span className="text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] group-hover:text-[#111]">✎</span>
-              </button>
-            )}
-          </div>
+          <InlineField
+            label="Name"
+            value={outfit.name}
+            onSave={async (next) => {
+              if (!next.trim() || next.trim() === outfit.name) return
+              await patchOutfit({ name: next.trim() })
+            }}
+            valueClassName="font-bold text-base"
+          />
 
-          {/* Occasion */}
-          <div>
-            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Occasion</p>
-            {editingOccasion ? (
-              <div className="flex gap-2">
-                <input
-                  autoFocus
-                  value={occasionInput}
-                  onChange={e => setOccasionInput(e.target.value)}
-                  placeholder="e.g. casual, work, formal"
-                  onBlur={saveOccasion}
-                  onKeyDown={e => e.key === 'Enter' && saveOccasion()}
-                  className="flex-1 border-2 border-[#111] px-3 py-1.5 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
-                />
-                <Button onClick={saveOccasion} loading={saving} className="shrink-0">Save</Button>
-              </div>
-            ) : (
-              <button onClick={() => setEditingOccasion(true)} className="flex items-center gap-2 group">
-                <span className="text-sm font-mono capitalize">{outfit.occasion || <span className="text-[#888]">—</span>}</span>
-                <span className="text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] group-hover:text-[#111]">✎</span>
-              </button>
-            )}
-          </div>
+          <InlineField
+            label="Occasion"
+            value={outfit.occasion}
+            onSave={async (next) => {
+              if (next === (outfit.occasion ?? '')) return
+              await patchOutfit({ occasion: next || undefined })
+            }}
+            placeholder="e.g. casual, work, formal"
+          />
 
           {/* Season */}
           <div>
@@ -237,47 +155,29 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
           {/* Tags */}
           <div>
             <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Tags</p>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {currentTags.map(t => (
-                <span key={t} className="flex items-center gap-1 border-2 border-[#111] px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em]">
-                  {t}
-                  <button onClick={() => removeTag(t)} className="text-[#888] hover:text-[#111] leading-none font-bold">×</button>
-                </span>
-              ))}
-            </div>
-            <input
-              value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); void addTag(tagInput) } }}
-              onBlur={() => { if (tagInput.trim()) void addTag(tagInput) }}
-              placeholder="Add tag, press Enter"
-              className="w-full border-2 border-[#111] px-3 py-1.5 text-[9px] font-mono outline-none focus:bg-[#f0f0f0] placeholder:text-[#888] placeholder:normal-case"
+            <TagEditor
+              tags={currentTags}
+              onChange={async (next) => {
+                try {
+                  const updated = await updateOutfit(outfit.id, { tags: next })
+                  setOutfit(o => ({ ...o, ...updated }))
+                  onChanged()
+                } catch (err) { setError(String(err)) }
+              }}
             />
           </div>
 
-          {/* Notes */}
-          <div>
-            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Notes</p>
-            {editingNotes ? (
-              <div className="flex gap-2">
-                <textarea
-                  autoFocus
-                  value={notesInput}
-                  onChange={e => setNotesInput(e.target.value)}
-                  onBlur={saveNotes}
-                  placeholder="Add notes about this outfit…"
-                  rows={3}
-                  className="flex-1 border-2 border-[#111] px-3 py-1.5 text-[10px] font-mono outline-none focus:bg-[#f0f0f0] resize-none placeholder:text-[#888] placeholder:normal-case"
-                />
-                <Button onClick={saveNotes} loading={saving} className="shrink-0 self-start">Save</Button>
-              </div>
-            ) : (
-              <button onClick={() => setEditingNotes(true)} className="flex items-center gap-2 group w-full text-left">
-                <span className="text-[10px] font-mono text-[#555]">{outfit.notes || <span className="text-[#888]">—</span>}</span>
-                <span className="text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] group-hover:text-[#111] shrink-0">✎</span>
-              </button>
-            )}
-          </div>
+          <InlineField
+            label="Notes"
+            value={outfit.notes}
+            onSave={async (next) => {
+              if (next === (outfit.notes ?? '')) return
+              await patchOutfit({ notes: next || undefined })
+            }}
+            placeholder="Add notes about this outfit…"
+            multiline
+            valueClassName="text-[10px] font-mono text-[#555]"
+          />
 
           {/* Item strip */}
           <div>

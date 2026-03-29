@@ -86,6 +86,7 @@ export const UpdateItemInputSchema = z.object({
   primaryColor: z.string().optional(),
   colors: z.array(z.string()).optional(),
   material: z.string().optional(),
+  materialSource: z.enum(['ocr', 'manual']).optional(),
   careInstructions: z.array(z.string()).optional(),
   brand: z.string().optional(),
   size: z.string().optional(),
