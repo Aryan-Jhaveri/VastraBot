@@ -16,7 +16,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const token = getToken()
   const headers = new Headers(init.headers)
 
-  if (token && !(init.body instanceof FormData)) {
+  if (init.body && !(init.body instanceof FormData)) {
     headers.set('Content-Type', headers.get('Content-Type') ?? 'application/json')
   }
 

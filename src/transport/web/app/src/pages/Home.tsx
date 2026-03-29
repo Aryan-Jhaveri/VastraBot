@@ -26,6 +26,7 @@ export function Home() {
   const [cityInput, setCityInput] = useState('')
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   async function handleGeocode(e: React.FormEvent) {
     e.preventDefault()
@@ -45,6 +46,7 @@ export function Home() {
 
   async function handleSave(suggestion: NonNullable<typeof result>['suggestions'][number]) {
     setSavingId(suggestion.name)
+    setSaveError(null)
     try {
       await createOutfit({
         name: suggestion.name,
@@ -57,6 +59,8 @@ export function Home() {
         } : undefined,
       })
       setSavedIds(prev => new Set([...prev, suggestion.name]))
+    } catch (err) {
+      setSaveError(String(err))
     } finally {
       setSavingId(null)
     }
@@ -128,6 +132,12 @@ export function Home() {
         <div className="flex justify-center py-10">
           <Spinner />
         </div>
+      )}
+
+      {saveError && (
+        <p className="text-[10px] font-mono text-red-600 uppercase tracking-[0.06em]">
+          Failed to save outfit: {saveError}
+        </p>
       )}
 
       {result?.suggestions.map((s, i) => (
