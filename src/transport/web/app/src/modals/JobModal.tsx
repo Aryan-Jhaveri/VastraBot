@@ -185,6 +185,16 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
   const [chatId, setChatId] = useState<string>(
     String((existingParams.chatId as number) || localStorage.getItem('closet-telegram-chat-id') || '')
   )
+
+  useEffect(() => {
+    if (chatId) return
+    fetch('/api/config', { credentials: 'include', headers: { Authorization: `Bearer ${localStorage.getItem('closet-token') ?? ''}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then((cfg: { telegramChatId: number | null } | null) => {
+        if (cfg?.telegramChatId) setChatId(String(cfg.telegramChatId))
+      })
+      .catch(() => {})
+  }, [])
   const [geoError, setGeoError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
