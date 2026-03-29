@@ -53,7 +53,7 @@ router.post('/', async (req, res) => {
     }
 
     if (!userPhotoId) return res.status(400).json({ error: 'userPhotoId is required' })
-    if (!itemIds?.length) return res.status(400).json({ error: 'itemIds must be a non-empty array' })
+    if (!itemIds?.length && !garmentUris?.length) return res.status(400).json({ error: 'Must provide at least one item or garment upload' })
 
     // Resolve user photo
     const allPhotos = queries.getUserPhotos()
@@ -64,7 +64,7 @@ router.post('/', async (req, res) => {
 
     // Resolve item images
     const itemBase64s: string[] = []
-    for (const itemId of itemIds) {
+    for (const itemId of itemIds ?? []) {
       const item = queries.getItem(itemId)
       if (!item) return res.status(404).json({ error: `Item ${itemId} not found` })
       const b64 = await imageToBase64(item.imageUri)
