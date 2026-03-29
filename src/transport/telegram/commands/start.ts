@@ -15,7 +15,8 @@ export async function handleStart(ctx: BotContext): Promise<void> {
     `/tryon — virtual try-on\n` +
     `/weather — current conditions\n` +
     `/myphoto — set your reference photo\n` +
-    `/worn <id> — mark item as worn\n\n` +
+    `/worn <id> — mark item as worn\n` +
+    `/cancel — exit current flow\n\n` +
     `Send any photo to add it to your closet.`,
     { parse_mode: 'Markdown', reply_markup: keyboard },
   )

@@ -72,12 +72,8 @@ export function App() {
         }
       }
 
-      // Normal browser (or Telegram initData auth failed) — verify stored token
-      const token = getToken()
-      if (!token) { setAuthed(false); return }
-      apiFetchJSON('/api/items?limit=1')
-        .then(() => setAuthed(true))
-        .catch(() => setAuthed(false))
+      // No password required — open access
+      setAuthed(true)
     }
     void checkAuth()
   }, [])

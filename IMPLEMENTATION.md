@@ -1,4 +1,11 @@
-# Ideas
+# Ideas 
+    - [ ] Closet:
+        - The type tags on the top need to update, for example theres a sneaker item but the tags don't reflect it, it needs to be automatic
+        - Uploaded images need to cropped and unified to fit properly, despite whatever aspect ratio they were uploaded in
+        - Add multi select for tags
+
+
+
     - [ ] Outfits page needs a schedule feature, where a selected outfit gets scheduled to be sent as reminder in telegram, a cron job automation type preset feature with what we have in jobs. We also need jobs to show such scheduled jobs.
 
 

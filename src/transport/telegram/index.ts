@@ -60,6 +60,10 @@ async function main() {
   // ── Commands ─────────────────────────────────────────────────────────────────
 
   bot.command('start', handleStart)
+  bot.command('cancel', async ctx => {
+    await ctx.conversation.exit()
+    await ctx.reply('Cancelled.')
+  })
   bot.command('closet', handleCloset)
   bot.command('outfit', handleOutfit)
   bot.command('weather', handleWeather)
