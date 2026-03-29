@@ -19,6 +19,9 @@ import tryonRouter from './routes/tryon.js'
 import jobsRouter from './routes/jobs.js'
 import { registerBuiltInJobTypes } from '../../jobs/types/index.js'
 import { seedDefaultJobs } from '../../jobs/seed.js'
+import { initScheduler } from '../../jobs/scheduler.js'
+import { Bot } from 'grammy'
+import type { Api } from 'grammy'
 
 export function validateTelegramInitData(initData: string, botToken: string): boolean {
   const params = new URLSearchParams(initData)
@@ -49,6 +52,19 @@ migrate(db, { migrationsFolder })
 
 // Seed default jobs (idempotent — only inserts if missing)
 seedDefaultJobs()
+
+// Start scheduler if a bot token is configured (API-only — no polling)
+export let schedulerBotApi: Api | null = null
+
+if (process.env.TELEGRAM_BOT_TOKEN) {
+  const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN)
+  bot.init()
+    .then(() => {
+      schedulerBotApi = bot.api
+      initScheduler(bot.api)
+    })
+    .catch(err => console.error('[server] Failed to init scheduler bot:', err))
+}
 
 const app = express()
 const PORT = parseInt(process.env.WEB_PORT ?? '3000', 10)

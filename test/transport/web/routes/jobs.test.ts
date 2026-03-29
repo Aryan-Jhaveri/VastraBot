@@ -18,8 +18,19 @@ vi.mock('../../../../src/jobs/registry.js', () => ({
   getJobType: vi.fn(),
 }))
 
+vi.mock('../../../../src/jobs/scheduler.js', () => ({
+  addJobToScheduler: vi.fn(),
+  removeJobFromScheduler: vi.fn(),
+}))
+
+// Mock server to control schedulerBotApi
+vi.mock('../../../../src/transport/web/server.js', () => ({
+  schedulerBotApi: { sendMessage: vi.fn() },
+}))
+
 import * as store from '../../../../src/jobs/store.js'
 import * as registry from '../../../../src/jobs/registry.js'
+import * as scheduler from '../../../../src/jobs/scheduler.js'
 import jobsRouter from '../../../../src/transport/web/routes/jobs.js'
 
 function makeApp() {
@@ -93,6 +104,7 @@ describe('POST /', () => {
     vi.mocked(registry.getJobType).mockReturnValue(mockJobType as ReturnType<typeof registry.getJobType>)
     vi.mocked(store.insertJob).mockReturnValue(mockJob as ReturnType<typeof store.insertJob>)
     mockJobType.paramsSchema.safeParse = vi.fn(() => ({ success: true, data: {} }))
+    vi.mocked(scheduler.addJobToScheduler).mockReset()
   })
 
   it('creates a job and returns 201', async () => {
@@ -100,10 +112,18 @@ describe('POST /', () => {
       .post('/')
       .send({ name: 'Morning Outfit', type: 'daily_outfit', schedule: '0 8 * * *', params: { chatId: 123 } })
 
-    // If 500, surface the error message to make debugging easier
     if (res.status === 500) throw new Error(`Unexpected 500: ${JSON.stringify(res.body)}`)
     expect(res.status).toBe(201)
     expect(store.insertJob).toHaveBeenCalledOnce()
+  })
+
+  it('calls addJobToScheduler with the new job', async () => {
+    await request(makeApp())
+      .post('/')
+      .send({ name: 'Morning Outfit', type: 'daily_outfit', schedule: '0 8 * * *', params: { chatId: 123 } })
+
+    expect(scheduler.addJobToScheduler).toHaveBeenCalledOnce()
+    expect(scheduler.addJobToScheduler).toHaveBeenCalledWith(mockJob, expect.anything())
   })
 
   it('returns 400 for missing required fields', async () => {
@@ -133,6 +153,11 @@ describe('POST /', () => {
 })
 
 describe('PATCH /:id/toggle', () => {
+  beforeEach(() => {
+    vi.mocked(scheduler.addJobToScheduler).mockReset()
+    vi.mocked(scheduler.removeJobFromScheduler).mockReset()
+  })
+
   it('toggles job enabled state', async () => {
     vi.mocked(store.getJob).mockReturnValue(mockJob as ReturnType<typeof store.getJob>)
     vi.mocked(store.toggleJob).mockReturnValue({ ...mockJob, enabled: 0 } as ReturnType<typeof store.toggleJob>)
@@ -140,8 +165,32 @@ describe('PATCH /:id/toggle', () => {
     const res = await request(makeApp()).patch('/job-1/toggle')
     expect(res.status).toBe(200)
     expect(res.body.enabled).toBe(0)
-    // mockJob.enabled === 1, so toggle passes false (disable it)
     expect(store.toggleJob).toHaveBeenCalledWith('job-1', false)
+  })
+
+  it('removes job from scheduler on toggle', async () => {
+    vi.mocked(store.getJob).mockReturnValue(mockJob as ReturnType<typeof store.getJob>)
+    vi.mocked(store.toggleJob).mockReturnValue({ ...mockJob, enabled: 0 } as ReturnType<typeof store.toggleJob>)
+
+    await request(makeApp()).patch('/job-1/toggle')
+    expect(scheduler.removeJobFromScheduler).toHaveBeenCalledWith('job-1')
+  })
+
+  it('re-adds job to scheduler when enabling', async () => {
+    const disabledJob = { ...mockJob, enabled: 0 }
+    vi.mocked(store.getJob).mockReturnValue(disabledJob as ReturnType<typeof store.getJob>)
+    vi.mocked(store.toggleJob).mockReturnValue({ ...mockJob, enabled: 1 } as ReturnType<typeof store.toggleJob>)
+
+    await request(makeApp()).patch('/job-1/toggle')
+    expect(scheduler.addJobToScheduler).toHaveBeenCalledOnce()
+  })
+
+  it('does not re-add job to scheduler when disabling', async () => {
+    vi.mocked(store.getJob).mockReturnValue(mockJob as ReturnType<typeof store.getJob>)
+    vi.mocked(store.toggleJob).mockReturnValue({ ...mockJob, enabled: 0 } as ReturnType<typeof store.toggleJob>)
+
+    await request(makeApp()).patch('/job-1/toggle')
+    expect(scheduler.addJobToScheduler).not.toHaveBeenCalled()
   })
 
   it('returns 404 for unknown job', async () => {
@@ -152,6 +201,11 @@ describe('PATCH /:id/toggle', () => {
 })
 
 describe('PATCH /:id (edit)', () => {
+  beforeEach(() => {
+    vi.mocked(scheduler.addJobToScheduler).mockReset()
+    vi.mocked(scheduler.removeJobFromScheduler).mockReset()
+  })
+
   it('updates job fields', async () => {
     vi.mocked(store.getJob).mockReturnValue(mockJob as ReturnType<typeof store.getJob>)
     vi.mocked(store.updateJob).mockReturnValue({ ...mockJob, name: 'Evening Job' } as ReturnType<typeof store.updateJob>)
@@ -164,6 +218,25 @@ describe('PATCH /:id (edit)', () => {
     expect(res.body.name).toBe('Evening Job')
   })
 
+  it('reschedules job in scheduler on update (remove + re-add)', async () => {
+    vi.mocked(store.getJob).mockReturnValue(mockJob as ReturnType<typeof store.getJob>)
+    vi.mocked(store.updateJob).mockReturnValue({ ...mockJob, schedule: '0 20 * * *' } as ReturnType<typeof store.updateJob>)
+
+    await request(makeApp()).patch('/job-1').send({ schedule: '0 20 * * *' })
+    expect(scheduler.removeJobFromScheduler).toHaveBeenCalledWith('job-1')
+    expect(scheduler.addJobToScheduler).toHaveBeenCalledOnce()
+  })
+
+  it('does not re-add disabled job on update', async () => {
+    const disabledJob = { ...mockJob, enabled: 0 }
+    vi.mocked(store.getJob).mockReturnValue(disabledJob as ReturnType<typeof store.getJob>)
+    vi.mocked(store.updateJob).mockReturnValue(disabledJob as ReturnType<typeof store.updateJob>)
+
+    await request(makeApp()).patch('/job-1').send({ name: 'New Name' })
+    expect(scheduler.removeJobFromScheduler).toHaveBeenCalledWith('job-1')
+    expect(scheduler.addJobToScheduler).not.toHaveBeenCalled()
+  })
+
   it('returns 404 for unknown job', async () => {
     vi.mocked(store.getJob).mockReturnValue(undefined)
     const res = await request(makeApp()).patch('/ghost').send({ name: 'X' })
@@ -172,6 +245,10 @@ describe('PATCH /:id (edit)', () => {
 })
 
 describe('DELETE /:id', () => {
+  beforeEach(() => {
+    vi.mocked(scheduler.removeJobFromScheduler).mockReset()
+  })
+
   it('deletes a job and returns 204', async () => {
     vi.mocked(store.getJob).mockReturnValue(mockJob as ReturnType<typeof store.getJob>)
     vi.mocked(store.deleteJob).mockReturnValue(undefined)
@@ -179,6 +256,14 @@ describe('DELETE /:id', () => {
     const res = await request(makeApp()).delete('/job-1')
     expect(res.status).toBe(204)
     expect(store.deleteJob).toHaveBeenCalledWith('job-1')
+  })
+
+  it('removes job from scheduler on delete', async () => {
+    vi.mocked(store.getJob).mockReturnValue(mockJob as ReturnType<typeof store.getJob>)
+    vi.mocked(store.deleteJob).mockReturnValue(undefined)
+
+    await request(makeApp()).delete('/job-1')
+    expect(scheduler.removeJobFromScheduler).toHaveBeenCalledWith('job-1')
   })
 
   it('returns 404 for unknown job', async () => {

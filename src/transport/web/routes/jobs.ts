@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { getAllJobs, getJob, insertJob, updateJob, toggleJob, deleteJob } from '../../../jobs/store.js'
 import { listJobTypes, getJobType } from '../../../jobs/registry.js'
+import { addJobToScheduler, removeJobFromScheduler } from '../../../jobs/scheduler.js'
+import { schedulerBotApi } from '../server.js'
 
 const router = Router()
 
@@ -60,6 +62,7 @@ router.post('/', async (req, res) => {
     }
 
     const job = insertJob({ name, type, schedule, params: params ?? {} })
+    if (schedulerBotApi) addJobToScheduler(job, schedulerBotApi)
     res.status(201).json({ ...job, params: JSON.parse(job.params) })
   } catch (err) {
     res.status(500).json({ error: String(err) })
@@ -80,6 +83,8 @@ router.patch('/:id', (req, res) => {
     if (!body.success) return res.status(400).json({ error: body.error.flatten() })
 
     const updated = updateJob(req.params.id, body.data)
+    removeJobFromScheduler(req.params.id)
+    if (schedulerBotApi && updated?.enabled) addJobToScheduler(updated, schedulerBotApi)
     res.json({ ...updated, params: JSON.parse(updated!.params) })
   } catch (err) {
     res.status(500).json({ error: String(err) })
@@ -92,6 +97,8 @@ router.patch('/:id/toggle', (req, res) => {
   if (!job) return res.status(404).json({ error: 'Job not found' })
 
   const updated = toggleJob(req.params.id, job.enabled === 0)
+  removeJobFromScheduler(req.params.id)
+  if (schedulerBotApi && updated?.enabled) addJobToScheduler(updated, schedulerBotApi)
   res.json({ ...updated, params: JSON.parse(updated!.params) })
 })
 
@@ -100,6 +107,7 @@ router.delete('/:id', (req, res) => {
   const job = getJob(req.params.id)
   if (!job) return res.status(404).json({ error: 'Job not found' })
 
+  removeJobFromScheduler(req.params.id)
   deleteJob(req.params.id)
   res.status(204).send()
 })
