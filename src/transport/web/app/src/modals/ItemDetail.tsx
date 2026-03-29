@@ -22,85 +22,147 @@ const OCCASIONS = ['casual', 'work', 'formal', 'outdoor', 'date']
 export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetailProps) {
   const navigate = useNavigate()
   const [item, setItem] = useState<Item>(initialItem)
-  const [deleting, setDeleting] = useState(false)
-  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [scanningTag, setScanningTag] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-  // Edit state — initialized lazily via openEdit()
-  const [editCategory, setEditCategory] = useState('')
-  const [editSubcategory, setEditSubcategory] = useState('')
-  const [editPrimaryColor, setEditPrimaryColor] = useState('')
-  const [editMaterial, setEditMaterial] = useState('')
-  const [editBrand, setEditBrand] = useState('')
-  const [editSize, setEditSize] = useState('')
-  const [editedTags, setEditedTags] = useState<string[]>([])
+  // Per-field inline editing state
+  const [editingCategory, setEditingCategory] = useState(false)
+  const [categoryInput, setCategoryInput] = useState('')
+  const [editingSubcategory, setEditingSubcategory] = useState(false)
+  const [subcategoryInput, setSubcategoryInput] = useState('')
+  const [editingColor, setEditingColor] = useState(false)
+  const [colorInput, setColorInput] = useState('')
+  const [editingMaterial, setEditingMaterial] = useState(false)
+  const [materialInput, setMaterialInput] = useState('')
+  const [editingBrand, setEditingBrand] = useState(false)
+  const [brandInput, setBrandInput] = useState('')
+  const [editingSize, setEditingSize] = useState(false)
+  const [sizeInput, setSizeInput] = useState('')
+  const [editingSeason, setEditingSeason] = useState(false)
+  const [editingOccasion, setEditingOccasion] = useState(false)
+  const [occasionInput, setOccasionInput] = useState('')
+
+  // Tags & care instructions
   const [tagInput, setTagInput] = useState('')
-  const [editedSeason, setEditedSeason] = useState<string[]>([])
-  const [editedOccasion, setEditedOccasion] = useState<string[]>([])
-  const [editedCareInstructions, setEditedCareInstructions] = useState<string[]>([])
   const [careInput, setCareInput] = useState('')
 
-  const careInstructions = parseJSON<string[]>(item.careInstructions, [])
-  const seasons = parseJSON<string[]>(item.season, [])
-  const tags = parseJSON<string[]>(item.tags, [])
+  const currentSeasons = parseJSON<string[]>(item.season, [])
+  const currentOccasions = parseJSON<string[]>(item.occasion, [])
+  const currentTags = parseJSON<string[]>(item.tags, [])
+  const currentCare = parseJSON<string[]>(item.careInstructions, [])
 
-  function openEdit() {
-    setEditCategory(item.category)
-    setEditSubcategory(item.subcategory ?? '')
-    setEditPrimaryColor(item.primaryColor ?? '')
-    setEditMaterial(item.material ?? '')
-    setEditBrand(item.brand ?? '')
-    setEditSize(item.size ?? '')
-    setEditedTags(parseJSON<string[]>(item.tags, []))
-    setEditedSeason(parseJSON<string[]>(item.season, []))
-    setEditedOccasion(parseJSON<string[]>(item.occasion, []))
-    setEditedCareInstructions(parseJSON<string[]>(item.careInstructions, []))
-    setTagInput('')
-    setCareInput('')
-    setEditing(true)
+  // Generic per-field save
+  async function saveField(patch: Partial<Item>, cleanup: () => void) {
+    setSaving(true)
+    try {
+      const updated = await updateItem(item.id, patch)
+      setItem(updated)
+      cleanup()
+      onChanged()
+    } catch (err) { setError(String(err)) }
+    finally { setSaving(false) }
   }
 
-  function addTag() {
-    const t = tagInput.trim().toLowerCase()
-    if (t && !editedTags.includes(t)) setEditedTags(prev => [...prev, t])
-    setTagInput('')
+  async function saveCategory() {
+    if (!categoryInput.trim() || categoryInput === item.category) { setEditingCategory(false); return }
+    await saveField({ category: categoryInput.trim() }, () => setEditingCategory(false))
   }
 
-  function addCareInstruction() {
-    const c = careInput.trim()
-    if (c && !editedCareInstructions.includes(c)) setEditedCareInstructions(prev => [...prev, c])
-    setCareInput('')
+  async function saveSubcategory() {
+    if (subcategoryInput === (item.subcategory ?? '')) { setEditingSubcategory(false); return }
+    await saveField({ subcategory: subcategoryInput.trim() || undefined }, () => setEditingSubcategory(false))
+  }
+
+  async function saveColor() {
+    if (colorInput === (item.primaryColor ?? '')) { setEditingColor(false); return }
+    await saveField({ primaryColor: colorInput.trim() || undefined }, () => setEditingColor(false))
+  }
+
+  async function saveMaterial() {
+    if (materialInput === (item.material ?? '')) { setEditingMaterial(false); return }
+    await saveField({ material: materialInput.trim() || undefined }, () => setEditingMaterial(false))
+  }
+
+  async function saveBrand() {
+    if (brandInput === (item.brand ?? '')) { setEditingBrand(false); return }
+    await saveField({ brand: brandInput.trim() || undefined }, () => setEditingBrand(false))
+  }
+
+  async function saveSize() {
+    if (sizeInput === (item.size ?? '')) { setEditingSize(false); return }
+    await saveField({ size: sizeInput.trim() || undefined }, () => setEditingSize(false))
+  }
+
+  async function addOccasion(raw: string) {
+    const o = raw.trim().toLowerCase()
+    if (!o || currentOccasions.includes(o)) { setOccasionInput(''); return }
+    const next = [...currentOccasions, o]
+    try {
+      const updated = await updateItem(item.id, { occasion: next as unknown as string })
+      setItem(updated)
+      setOccasionInput('')
+      onChanged()
+    } catch (err) { setError(String(err)) }
+  }
+
+  async function removeOccasion(o: string) {
+    const next = currentOccasions.filter(x => x !== o)
+    try {
+      const updated = await updateItem(item.id, { occasion: next as unknown as string })
+      setItem(updated)
+      onChanged()
+    } catch (err) { setError(String(err)) }
+  }
+
+  async function addTag(raw: string) {
+    const t = raw.trim().toLowerCase()
+    if (!t || currentTags.includes(t)) { setTagInput(''); return }
+    const next = [...currentTags, t]
+    try {
+      const updated = await updateItem(item.id, { tags: next as unknown as string })
+      setItem(updated)
+      setTagInput('')
+      onChanged()
+    } catch (err) { setError(String(err)) }
+  }
+
+  async function removeTag(t: string) {
+    const next = currentTags.filter(x => x !== t)
+    try {
+      const updated = await updateItem(item.id, { tags: next as unknown as string })
+      setItem(updated)
+      onChanged()
+    } catch (err) { setError(String(err)) }
+  }
+
+  async function addCare(raw: string) {
+    const c = raw.trim()
+    if (!c || currentCare.includes(c)) { setCareInput(''); return }
+    const next = [...currentCare, c]
+    try {
+      const updated = await updateItem(item.id, { careInstructions: next as unknown as string })
+      setItem(updated)
+      setCareInput('')
+      onChanged()
+    } catch (err) { setError(String(err)) }
+  }
+
+  async function removeCare(c: string) {
+    const next = currentCare.filter(x => x !== c)
+    try {
+      const updated = await updateItem(item.id, { careInstructions: next as unknown as string })
+      setItem(updated)
+      onChanged()
+    } catch (err) { setError(String(err)) }
   }
 
   async function handleDelete() {
     setDeleting(true)
     try { await deleteItem(item.id); onClose(); onChanged() }
     catch (err) { setError(String(err)); setDeleting(false) }
-  }
-
-  async function handleSaveEdit() {
-    setSaving(true)
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const updated = await updateItem(item.id, {
-        category: editCategory || undefined,
-        subcategory: editSubcategory || undefined,
-        primaryColor: editPrimaryColor || undefined,
-        material: editMaterial || undefined,
-        brand: editBrand || undefined,
-        size: editSize || undefined,
-        tags: editedTags as unknown as string,
-        season: editedSeason as unknown as string,
-        occasion: editedOccasion as unknown as string,
-        careInstructions: editedCareInstructions as unknown as string,
-      })
-      setItem(updated)
-      setEditing(false)
-    } catch (err) { setError(String(err)) }
-    finally { setSaving(false) }
   }
 
   async function handleScanTag(e: React.ChangeEvent<HTMLInputElement>) {
@@ -111,16 +173,56 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
     try {
       const { item: updated } = await scanTag(item.id, file)
       setItem(updated)
-      if (editing) {
-        if (updated.brand) setEditBrand(updated.brand)
-        if (updated.size) setEditSize(updated.size)
-        if (updated.material) setEditMaterial(updated.material)
-      }
     } catch (err) {
       setError(String(err))
     } finally {
       setScanningTag(false)
     }
+  }
+
+  function InlineField({
+    label,
+    value,
+    editing,
+    input,
+    onStartEdit,
+    onInput,
+    onSave,
+    placeholder,
+  }: {
+    label: string
+    value: string | null | undefined
+    editing: boolean
+    input: string
+    onStartEdit: () => void
+    onInput: (v: string) => void
+    onSave: () => void
+    placeholder?: string
+  }) {
+    return (
+      <div>
+        <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">{label}</p>
+        {editing ? (
+          <div className="flex gap-2">
+            <input
+              autoFocus
+              value={input}
+              onChange={e => onInput(e.target.value)}
+              onBlur={onSave}
+              onKeyDown={e => e.key === 'Enter' && onSave()}
+              placeholder={placeholder}
+              className="flex-1 border-2 border-[#111] px-3 py-1.5 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
+            />
+            <Button onClick={onSave} loading={saving} className="shrink-0">Save</Button>
+          </div>
+        ) : (
+          <button onClick={onStartEdit} className="flex items-center gap-2 group">
+            <span className="text-sm font-mono capitalize">{value || <span className="text-[#888]">—</span>}</span>
+            <span className="text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] group-hover:text-[#111]">✎</span>
+          </button>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -132,12 +234,7 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
           <span className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] capitalize">
             {item.subcategory ?? item.category}
           </span>
-          <button
-            onClick={() => editing ? setEditing(false) : openEdit()}
-            className="border-2 border-[#111] px-2 py-0.5 text-[8px] font-bold font-mono uppercase tracking-[0.06em] hover:bg-[#f0f0f0]"
-          >
-            {editing ? 'Done' : 'Edit'}
-          </button>
+          <div className="w-8" />
         </div>
 
         <div className="flex flex-col gap-4 p-4">
@@ -156,140 +253,171 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
             />
           </div>
 
-          {/* Name + category */}
+          {/* Category */}
+          <InlineField
+            label="Category"
+            value={item.category}
+            editing={editingCategory}
+            input={categoryInput}
+            onStartEdit={() => { setCategoryInput(item.category); setEditingCategory(true) }}
+            onInput={setCategoryInput}
+            onSave={saveCategory}
+            placeholder="e.g. tops"
+          />
+
+          {/* Type */}
+          <InlineField
+            label="Type"
+            value={item.subcategory}
+            editing={editingSubcategory}
+            input={subcategoryInput}
+            onStartEdit={() => { setSubcategoryInput(item.subcategory ?? ''); setEditingSubcategory(true) }}
+            onInput={setSubcategoryInput}
+            onSave={saveSubcategory}
+            placeholder="e.g. t-shirt"
+          />
+
+          {/* Color */}
+          <InlineField
+            label="Color"
+            value={item.primaryColor}
+            editing={editingColor}
+            input={colorInput}
+            onStartEdit={() => { setColorInput(item.primaryColor ?? ''); setEditingColor(true) }}
+            onInput={setColorInput}
+            onSave={saveColor}
+            placeholder="e.g. navy"
+          />
+
+          {/* Material */}
+          <InlineField
+            label="Material"
+            value={item.material}
+            editing={editingMaterial}
+            input={materialInput}
+            onStartEdit={() => { setMaterialInput(item.material ?? ''); setEditingMaterial(true) }}
+            onInput={setMaterialInput}
+            onSave={saveMaterial}
+            placeholder="e.g. cotton"
+          />
+
+          {/* Brand */}
+          <InlineField
+            label="Brand"
+            value={item.brand}
+            editing={editingBrand}
+            input={brandInput}
+            onStartEdit={() => { setBrandInput(item.brand ?? ''); setEditingBrand(true) }}
+            onInput={setBrandInput}
+            onSave={saveBrand}
+            placeholder="e.g. Nike"
+          />
+
+          {/* Size */}
+          <InlineField
+            label="Size"
+            value={item.size}
+            editing={editingSize}
+            input={sizeInput}
+            onStartEdit={() => { setSizeInput(item.size ?? ''); setEditingSize(true) }}
+            onInput={setSizeInput}
+            onSave={saveSize}
+            placeholder="e.g. M"
+          />
+
+          {/* Season */}
           <div>
-            <h2 className="font-bold text-base capitalize leading-tight">
-              {item.primaryColor ? `${item.primaryColor} ` : ''}{item.subcategory ?? item.category}
-            </h2>
-            <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] mt-0.5">
-              {item.category}{item.subcategory ? ` — ${item.subcategory}` : ''}
-            </p>
+            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Season</p>
+            {editingSeason ? (
+              <div>
+                <ChipToggle
+                  options={SEASONS}
+                  selected={currentSeasons}
+                  onChange={async (next) => {
+                    try {
+                      const updated = await updateItem(item.id, { season: next as unknown as string })
+                      setItem(o => ({ ...o, ...updated }))
+                      onChanged()
+                    } catch (err) { setError(String(err)) }
+                  }}
+                />
+                <button onClick={() => setEditingSeason(false)} className="mt-2 text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] hover:text-[#111]">Done</button>
+              </div>
+            ) : (
+              <button onClick={() => setEditingSeason(true)} className="flex items-center gap-2 group">
+                <span className="text-sm font-mono capitalize">
+                  {currentSeasons.length > 0 ? currentSeasons.join(', ') : <span className="text-[#888]">—</span>}
+                </span>
+                <span className="text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] group-hover:text-[#111]">✎</span>
+              </button>
+            )}
           </div>
 
-          {/* Attribute badges (read-only) */}
-          {!editing && (
-            <div className="flex flex-wrap gap-1.5">
-              {[item.primaryColor, item.material, item.brand, item.size, ...seasons]
-                .filter(Boolean)
-                .map((val, i) => (
-                  <span key={i} className="border-2 border-[#111] px-2 py-0.5 text-[8px] font-bold font-mono uppercase tracking-[0.04em]">
-                    {val}
-                  </span>
-                ))
-              }
-            </div>
-          )}
-
-          {/* Full edit panel */}
-          {editing && (
-            <div className="flex flex-col gap-4 border-2 border-[#111] p-3">
-              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.08em]">Edit Details</p>
-
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: 'Category', value: editCategory, set: setEditCategory, placeholder: 'e.g. tops' },
-                  { label: 'Type', value: editSubcategory, set: setEditSubcategory, placeholder: 'e.g. t-shirt' },
-                ].map(({ label, value, set, placeholder }) => (
-                  <div key={label} className="flex flex-col gap-1">
-                    <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">{label}</label>
-                    <input value={value} onChange={e => set(e.target.value)} placeholder={placeholder}
-                      className="border-2 border-[#111] px-2 py-1.5 text-[10px] font-mono outline-none focus:bg-[#f0f0f0]" />
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: 'Color', value: editPrimaryColor, set: setEditPrimaryColor, placeholder: 'e.g. navy' },
-                  { label: 'Material', value: editMaterial, set: setEditMaterial, placeholder: 'e.g. cotton' },
-                ].map(({ label, value, set, placeholder }) => (
-                  <div key={label} className="flex flex-col gap-1">
-                    <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">{label}</label>
-                    <input value={value} onChange={e => set(e.target.value)} placeholder={placeholder}
-                      className="border-2 border-[#111] px-2 py-1.5 text-[10px] font-mono outline-none focus:bg-[#f0f0f0]" />
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: 'Brand', value: editBrand, set: setEditBrand, placeholder: 'e.g. Nike' },
-                  { label: 'Size', value: editSize, set: setEditSize, placeholder: 'e.g. M' },
-                ].map(({ label, value, set, placeholder }) => (
-                  <div key={label} className="flex flex-col gap-1">
-                    <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">{label}</label>
-                    <input value={value} onChange={e => set(e.target.value)} placeholder={placeholder}
-                      className="border-2 border-[#111] px-2 py-1.5 text-[10px] font-mono outline-none focus:bg-[#f0f0f0]" />
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Season</label>
-                <ChipToggle options={SEASONS} selected={editedSeason} onChange={setEditedSeason} />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Occasion</label>
-                <ChipToggle options={OCCASIONS} selected={editedOccasion} onChange={setEditedOccasion} />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Tags</label>
-                {editedTags.length > 0 && (
+          {/* Occasion */}
+          <div>
+            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Occasion</p>
+            {editingOccasion ? (
+              <div className="flex flex-col gap-2">
+                {currentOccasions.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {editedTags.map(tag => (
-                      <span key={tag} className="flex items-center gap-1 border-2 border-[#111] px-2 py-0.5 text-[8px] font-bold font-mono uppercase tracking-[0.04em]">
-                        {tag}
-                        <button type="button" onClick={() => setEditedTags(prev => prev.filter(t => t !== tag))}
-                          className="text-[#888] hover:text-[#111] leading-none ml-0.5">×</button>
+                    {currentOccasions.map(o => (
+                      <span key={o} className="flex items-center gap-1 border-2 border-[#111] px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em]">
+                        {o}
+                        <button onClick={() => removeOccasion(o)} className="text-[#888] hover:text-[#111] leading-none font-bold">×</button>
                       </span>
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <input value={tagInput} onChange={e => setTagInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
-                    placeholder="Add tag + Enter"
-                    className="flex-1 border-2 border-[#111] px-2 py-1.5 text-[10px] font-mono outline-none focus:bg-[#f0f0f0]" />
-                  <button type="button" onClick={addTag}
-                    className="border-2 border-[#111] px-3 text-[8px] font-bold font-mono uppercase tracking-[0.06em] hover:bg-[#f0f0f0]">
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Care Instructions</label>
-                {editedCareInstructions.length > 0 && (
-                  <div className="flex flex-col gap-1">
-                    {editedCareInstructions.map((c, i) => (
-                      <span key={i} className="flex items-center gap-1 border-2 border-[#111] px-2 py-0.5 text-[8px] font-bold font-mono tracking-[0.04em]">
-                        <span className="flex-1">{c}</span>
-                        <button type="button" onClick={() => setEditedCareInstructions(prev => prev.filter((_, j) => j !== i))}
-                          className="text-[#888] hover:text-[#111] leading-none ml-0.5">×</button>
-                      </span>
+                <input
+                  value={occasionInput}
+                  onChange={e => setOccasionInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); void addOccasion(occasionInput) } }}
+                  onBlur={() => { if (occasionInput.trim()) void addOccasion(occasionInput) }}
+                  placeholder="Add occasion, press Enter"
+                  className="w-full border-2 border-[#111] px-3 py-1.5 text-[9px] font-mono outline-none focus:bg-[#f0f0f0] placeholder:text-[#888] placeholder:normal-case"
+                />
+                {OCCASIONS.filter(o => !currentOccasions.includes(o)).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {OCCASIONS.filter(o => !currentOccasions.includes(o)).map(o => (
+                      <button key={o} onClick={() => void addOccasion(o)}
+                        className="border border-dashed border-[#888] px-2 py-0.5 text-[8px] font-mono text-[#888] uppercase tracking-[0.04em] hover:border-[#111] hover:text-[#111]">
+                        + {o}
+                      </button>
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <input value={careInput} onChange={e => setCareInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCareInstruction() } }}
-                    placeholder="Add instruction + Enter"
-                    className="flex-1 border-2 border-[#111] px-2 py-1.5 text-[10px] font-mono outline-none focus:bg-[#f0f0f0]" />
-                  <button type="button" onClick={addCareInstruction}
-                    className="border-2 border-[#111] px-3 text-[8px] font-bold font-mono uppercase tracking-[0.06em] hover:bg-[#f0f0f0]">
-                    +
-                  </button>
-                </div>
+                <button onClick={() => setEditingOccasion(false)} className="text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] hover:text-[#111] self-start">Done</button>
               </div>
+            ) : (
+              <button onClick={() => setEditingOccasion(true)} className="flex items-center gap-2 group">
+                <span className="text-sm font-mono capitalize">
+                  {currentOccasions.length > 0 ? currentOccasions.join(', ') : <span className="text-[#888]">—</span>}
+                </span>
+                <span className="text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] group-hover:text-[#111]">✎</span>
+              </button>
+            )}
+          </div>
 
-              <div className="flex gap-2 pt-1">
-                <Button variant="ghost" onClick={() => setEditing(false)} className="flex-1">Cancel</Button>
-                <Button onClick={handleSaveEdit} loading={saving} className="flex-1">Save</Button>
-              </div>
+          {/* Tags */}
+          <div>
+            <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Tags</p>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {currentTags.map(t => (
+                <span key={t} className="flex items-center gap-1 border-2 border-[#111] px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em]">
+                  {t}
+                  <button onClick={() => removeTag(t)} className="text-[#888] hover:text-[#111] leading-none font-bold">×</button>
+                </span>
+              ))}
             </div>
-          )}
+            <input
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); void addTag(tagInput) } }}
+              onBlur={() => { if (tagInput.trim()) void addTag(tagInput) }}
+              placeholder="Add tag, press Enter"
+              className="w-full border-2 border-[#111] px-3 py-1.5 text-[9px] font-mono outline-none focus:bg-[#f0f0f0] placeholder:text-[#888] placeholder:normal-case"
+            />
+          </div>
 
           {/* Care label photo */}
           <div>
@@ -302,10 +430,13 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
                   <img src={`/${item.tagImageUri}`} alt="Care label" className="absolute inset-0 h-full w-full object-cover" />
                 </div>
                 <div className="flex-1 flex flex-col gap-1">
-                  {careInstructions.length > 0 && (
+                  {currentCare.length > 0 && (
                     <ul className="space-y-0.5">
-                      {careInstructions.map((c, i) => (
-                        <li key={i} className="text-[10px] font-mono text-[#555]">— {c}</li>
+                      {currentCare.map((c, i) => (
+                        <li key={i} className="text-[10px] font-mono text-[#555] flex items-start gap-1">
+                          <span className="flex-1">— {c}</span>
+                          <button onClick={() => removeCare(c)} className="text-[#888] hover:text-[#111] leading-none font-bold shrink-0">×</button>
+                        </li>
                       ))}
                     </ul>
                   )}
@@ -332,21 +463,28 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
             )}
           </div>
 
-          {/* Care instructions (no label photo but instructions exist) */}
-          {!item.tagImageUri && careInstructions.length > 0 && (
-            <ul className="space-y-0.5 -mt-2">
-              {careInstructions.map((c, i) => (
-                <li key={i} className="text-[10px] font-mono text-[#555]">— {c}</li>
-              ))}
-            </ul>
-          )}
-
-          {/* Tags (read-only) */}
-          {!editing && tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {tags.map(tag => (
-                <span key={tag} className="border border-[#111] px-2 py-0.5 text-[8px] font-mono uppercase tracking-[0.04em]">{tag}</span>
-              ))}
+          {/* Care instructions (no label photo) */}
+          {!item.tagImageUri && (
+            <div>
+              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Care Instructions</p>
+              {currentCare.length > 0 && (
+                <div className="flex flex-col gap-1 mb-2">
+                  {currentCare.map((c, i) => (
+                    <span key={i} className="flex items-center gap-1 border-2 border-[#111] px-2 py-0.5 text-[9px] font-mono tracking-[0.04em]">
+                      <span className="flex-1">{c}</span>
+                      <button onClick={() => removeCare(c)} className="text-[#888] hover:text-[#111] leading-none font-bold">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <input
+                value={careInput}
+                onChange={e => setCareInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void addCare(careInput) } }}
+                onBlur={() => { if (careInput.trim()) void addCare(careInput) }}
+                placeholder="Add instruction, press Enter"
+                className="w-full border-2 border-[#111] px-3 py-1.5 text-[9px] font-mono outline-none focus:bg-[#f0f0f0] placeholder:text-[#888] placeholder:normal-case"
+              />
             </div>
           )}
 

@@ -167,7 +167,7 @@ export function Closet() {
         <ItemDetail
           item={selected}
           onClose={() => setSelected(null)}
-          onChanged={() => { setSelected(null); void refetch() }}
+          onChanged={() => { void refetch() }}
         />
       )}
     </div>

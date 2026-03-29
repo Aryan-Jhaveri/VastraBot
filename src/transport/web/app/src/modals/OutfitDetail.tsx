@@ -128,12 +128,7 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
         <div className="flex items-center justify-between p-4 border-b-2 border-[#111]">
           <button onClick={onClose} className="text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:text-[#888]">←</button>
           <span className="text-[9px] font-bold font-mono uppercase tracking-[0.08em]">Outfit</span>
-          <button
-            onClick={() => setEditingName(true)}
-            className="border-2 border-[#111] px-2 py-0.5 text-[8px] font-bold font-mono uppercase tracking-[0.06em] hover:bg-[#f0f0f0]"
-          >
-            Edit
-          </button>
+          <div className="w-8" />
         </div>
 
         <div className="flex flex-col gap-4 p-4">
