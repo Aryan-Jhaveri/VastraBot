@@ -197,34 +197,6 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
             </div>
           </div>
 
-          {/* Care notes */}
-          {outfit.items.some(i => {
-            try { return (JSON.parse(i.careInstructions || '[]') as string[]).length > 0 } catch { return false }
-          }) && (
-            <div>
-              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">
-                Care Notes
-              </p>
-              {outfit.items.map(item => {
-                let care: string[] = []
-                try { care = JSON.parse(item.careInstructions || '[]') as string[] } catch { /* ignore */ }
-                if (!care.length) return null
-                return (
-                  <div key={item.id} className="mb-2">
-                    <p className="text-[8px] font-mono text-[#888] uppercase tracking-[0.04em] mb-0.5 capitalize">
-                      {item.subcategory ?? item.category}
-                    </p>
-                    <ul className="space-y-0.5">
-                      {care.map((c, i) => (
-                        <li key={i} className="text-[10px] font-mono text-[#555]">— {c}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
           {/* Actions */}
           <div className="flex flex-col gap-2 border-t-2 border-[#111] pt-3">
             <Button

@@ -254,6 +254,19 @@ export function TryOn() {
     setError(null)
   }
 
+  async function downloadImage(uri: string) {
+    const res = await fetch(`/${uri}`)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tryon-${Date.now()}.jpg`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   async function handleSaveToDevice() {
     if (!resultUri) return
     // Try native share (adds to Photos on iOS)
@@ -269,11 +282,7 @@ export function TryOn() {
         }
       } catch { /* fall through to download */ }
     }
-    // Fallback: trigger browser download
-    const a = document.createElement('a')
-    a.href = `/${resultUri}`
-    a.download = `tryon-${Date.now()}.jpg`
-    a.click()
+    await downloadImage(resultUri)
     setSaved(true)
   }
 
@@ -413,6 +422,15 @@ export function TryOn() {
                       className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#111] text-white flex items-center justify-center text-xs font-bold hover:bg-[#444] disabled:opacity-50 transition-colors z-10"
                     >
                       {deletingHistoryId === h.id ? '…' : '×'}
+                    </button>
+                    <button
+                      onClick={() => void downloadImage(h.resultImageUri)}
+                      className="absolute -bottom-1.5 -right-1.5 w-5 h-5 bg-[#111] text-white flex items-center justify-center hover:bg-[#444] transition-colors z-10"
+                      title="Download"
+                    >
+                      <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                        <path d="M5 1v6M2 5l3 3 3-3M1 9h8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </button>
                   </div>
                 ))}
