@@ -570,7 +570,7 @@ export function TryOn() {
             </div>
           )}
 
-          <div className="sticky bottom-16 bg-white border-t-2 border-b-2 border-[#111] pt-3 pb-3 mt-2">
+          <div className="sticky bottom-0 bg-white border-t-2 border-[#111] pt-3 pb-20 -mx-4 px-4">
             <Button
               onClick={handleGenerate}
               disabled={selectedItemIds.size === 0 && uploadedGarments.length === 0 || uploadedGarments.some(g => g.uploading)}
