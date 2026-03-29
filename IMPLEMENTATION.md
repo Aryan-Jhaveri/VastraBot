@@ -1,4 +1,9 @@
 # Ideas
+    - [ ] Outfits page needs a schedule feature, where a selected outfit gets scheduled to be sent as reminder in telegram, a cron job automation type preset feature with what we have in jobs. We also need jobs to show such scheduled jobs.
+
+
+
+    
     - [ ] Items page needs to be like closet really, with the ability to filter by tags, same for the otfits page.
     - [ ] try on page doesn't show upload page. Only Items & Outfits page.
 

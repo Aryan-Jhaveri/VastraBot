@@ -7,3 +7,8 @@ CLAUDE.md
 research/
 references/
 IMPLE*.md
+.gitignore
+references/
+.obsidian/
+.claude/
+
