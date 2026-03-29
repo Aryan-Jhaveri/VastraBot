@@ -2,7 +2,7 @@ import { ai, VISION_MODEL } from './client.js'
 import { parseGeminiJSON } from './parse.js'
 import type { ItemClassification } from '../types/index.js'
 
-const CATEGORIZE_PROMPT = `Analyze this clothing item image. Return ONLY valid JSON with no markdown:
+const BASE_PROMPT = `Analyze this clothing item image. Return ONLY valid JSON with no markdown:
 {
   "category": "tops|bottoms|shoes|outerwear|accessories|dresses|activewear|underwear",
   "subcategory": "specific type e.g. t-shirt, jeans, sneakers",
@@ -14,7 +14,13 @@ const CATEGORIZE_PROMPT = `Analyze this clothing item image. Return ONLY valid J
   "suggested_tags": ["casual", "formal", "streetwear"]
 }`
 
-export async function categorizeItem(imageBase64: string): Promise<ItemClassification> {
+function buildPrompt(existingTags: string[]): string {
+  if (existingTags.length === 0) return BASE_PROMPT
+  return `${BASE_PROMPT}
+Existing tags in this wardrobe — reuse these when they fit, only add a new tag if none apply: ${existingTags.join(', ')}`
+}
+
+export async function categorizeItem(imageBase64: string, existingTags: string[] = []): Promise<ItemClassification> {
   const response = await ai.models.generateContent({
     model: VISION_MODEL,
     contents: [
@@ -22,7 +28,7 @@ export async function categorizeItem(imageBase64: string): Promise<ItemClassific
         role: 'user',
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } },
-          { text: CATEGORIZE_PROMPT },
+          { text: buildPrompt(existingTags) },
         ],
       },
     ],

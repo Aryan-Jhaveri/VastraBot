@@ -25,6 +25,7 @@ vi.mock('../../../../src/storage/images.js', () => ({
 
 vi.mock('../../../../src/db/queries.js', () => ({
   updateItem: vi.fn(),
+  getUniqueTags: vi.fn().mockReturnValue([]),
 }))
 
 import * as itemsTools from '../../../../src/tools/items.js'

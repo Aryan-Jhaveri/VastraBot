@@ -12,6 +12,17 @@ export function getAllItems(): Item[] {
   return db.select().from(items).orderBy(desc(items.createdAt)).all() as Item[]
 }
 
+export function getUniqueTags(): string[] {
+  const rows = db.select({ tags: items.tags }).from(items).all() as { tags: string }[]
+  const tagSet = new Set<string>()
+  for (const row of rows) {
+    try {
+      (JSON.parse(row.tags ?? '[]') as string[]).forEach(t => tagSet.add(t))
+    } catch { /* ignore malformed rows */ }
+  }
+  return [...tagSet].sort()
+}
+
 export function getItem(id: string): Item | undefined {
   return db.select().from(items).where(eq(items.id, id)).get() as Item | undefined
 }

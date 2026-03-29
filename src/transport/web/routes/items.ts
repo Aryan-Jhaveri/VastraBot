@@ -4,7 +4,7 @@ import { addItem, listItems, getItem, updateItem, deleteItem, markWorn } from '.
 import { categorizeItem } from '../../../ai/categorize.js'
 import { scanTag } from '../../../ai/scanTag.js'
 import { saveImageFromBase64 } from '../../../storage/images.js'
-import { updateItem as dbUpdateItem } from '../../../db/queries.js'
+import { updateItem as dbUpdateItem, getUniqueTags } from '../../../db/queries.js'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage() })
@@ -49,7 +49,8 @@ router.post('/analyze', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image provided' })
     const base64 = req.file.buffer.toString('base64')
-    const classification = await categorizeItem(base64)
+    const existingTags = getUniqueTags()
+    const classification = await categorizeItem(base64, existingTags)
     res.json(classification)
   } catch (err) {
     res.status(500).json({ error: String(err) })
