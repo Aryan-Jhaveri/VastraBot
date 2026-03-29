@@ -50,6 +50,7 @@ export function TryOn() {
   // Item filters (client-side, ITEMS tab only)
   const [filterCategory, setFilterCategory] = useState('')
   const [filterColor, setFilterColor] = useState('')
+  const [filterTag, setFilterTag] = useState('')
 
   // Garments
   const [uploadedGarments, setUploadedGarments] = useState<GarmentUpload[]>([])
@@ -122,14 +123,26 @@ export function TryOn() {
     () => [...new Set(items.map(i => i.primaryColor).filter(Boolean) as string[])].sort(),
     [items],
   )
+  const filterTagOptions = useMemo(
+    () => {
+      const s = new Set<string>()
+      items.forEach(i => { try { (JSON.parse(i.tags || '[]') as string[]).forEach(t => s.add(t)) } catch { /* ignore */ } })
+      return [...s].sort()
+    },
+    [items],
+  )
   const filteredItems = useMemo(
     () => items
       .filter(i => !filterCategory || i.category === filterCategory)
-      .filter(i => !filterColor || i.primaryColor === filterColor),
-    [items, filterCategory, filterColor],
+      .filter(i => !filterColor || i.primaryColor === filterColor)
+      .filter(i => {
+        if (!filterTag) return true
+        try { return (JSON.parse(i.tags || '[]') as string[]).includes(filterTag) } catch { return false }
+      }),
+    [items, filterCategory, filterColor, filterTag],
   )
-  const itemFilterValues = { category: filterCategory, color: filterColor }
-  const itemFilterCount = [filterCategory, filterColor].filter(Boolean).length
+  const itemFilterValues = { category: filterCategory, color: filterColor, tag: filterTag }
+  const itemFilterCount = [filterCategory, filterColor, filterTag].filter(Boolean).length
 
   async function handleDeletePhoto(id: string) {
     setDeletingPhotoId(id)
@@ -434,7 +447,7 @@ export function TryOn() {
               <button
                 key={tab}
                 onClick={() => {
-                  if (tab !== 'items') { setFilterCategory(''); setFilterColor('') }
+                  if (tab !== 'items') { setFilterCategory(''); setFilterColor(''); setFilterTag('') }
                   setItemsTab(tab)
                 }}
                 className={`flex-1 py-2 text-[9px] font-bold font-mono uppercase tracking-[0.08em] transition-colors ${
@@ -457,13 +470,15 @@ export function TryOn() {
                     filters={[
                       ...(filterCategoryOptions.length > 0 ? [{ key: 'category', label: 'Category', options: filterCategoryOptions }] : []),
                       ...(filterColorOptions.length > 0 ? [{ key: 'color', label: 'Color', options: filterColorOptions }] : []),
+                      ...(filterTagOptions.length > 0 ? [{ key: 'tag', label: 'Tag', options: filterTagOptions }] : []),
                     ]}
                     values={itemFilterValues}
                     onChange={(key, value) => {
                       if (key === 'category') setFilterCategory(value)
                       else if (key === 'color') setFilterColor(value)
+                      else if (key === 'tag') setFilterTag(value)
                     }}
-                    onClear={() => { setFilterCategory(''); setFilterColor('') }}
+                    onClear={() => { setFilterCategory(''); setFilterColor(''); setFilterTag('') }}
                     activeCount={itemFilterCount}
                   />
                 )}

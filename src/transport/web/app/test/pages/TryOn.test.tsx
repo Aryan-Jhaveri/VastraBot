@@ -50,6 +50,7 @@ const mockItem = {
   primaryColor: 'white',
   colors: '[]',
   material: null,
+  materialSource: null,
   careInstructions: '[]',
   brand: null,
   size: null,

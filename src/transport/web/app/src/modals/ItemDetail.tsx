@@ -5,6 +5,8 @@ import type { Item } from '../api/items'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { ChipToggle } from '../components/ui/ChipToggle'
+import { InlineField } from '../components/ui/InlineField'
+import { TagEditor } from '../components/ui/TagEditor'
 
 interface ItemDetailProps {
   item: Item
@@ -22,31 +24,13 @@ const OCCASIONS = ['casual', 'work', 'formal', 'outdoor', 'date']
 export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetailProps) {
   const navigate = useNavigate()
   const [item, setItem] = useState<Item>(initialItem)
-  const [saving, setSaving] = useState(false)
   const [scanningTag, setScanningTag] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
-
-  // Per-field inline editing state
-  const [editingCategory, setEditingCategory] = useState(false)
-  const [categoryInput, setCategoryInput] = useState('')
-  const [editingSubcategory, setEditingSubcategory] = useState(false)
-  const [subcategoryInput, setSubcategoryInput] = useState('')
-  const [editingColor, setEditingColor] = useState(false)
-  const [colorInput, setColorInput] = useState('')
-  const [editingMaterial, setEditingMaterial] = useState(false)
-  const [materialInput, setMaterialInput] = useState('')
-  const [editingBrand, setEditingBrand] = useState(false)
-  const [brandInput, setBrandInput] = useState('')
-  const [editingSize, setEditingSize] = useState(false)
-  const [sizeInput, setSizeInput] = useState('')
   const [editingSeason, setEditingSeason] = useState(false)
   const [editingOccasion, setEditingOccasion] = useState(false)
   const [occasionInput, setOccasionInput] = useState('')
-
-  // Tags & care instructions
-  const [tagInput, setTagInput] = useState('')
   const [careInput, setCareInput] = useState('')
 
   const currentSeasons = parseJSON<string[]>(item.season, [])
@@ -54,109 +38,34 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
   const currentTags = parseJSON<string[]>(item.tags, [])
   const currentCare = parseJSON<string[]>(item.careInstructions, [])
 
-  // Generic per-field save
-  async function saveField(patch: Partial<Item>, cleanup: () => void) {
-    setSaving(true)
+  async function patchItem(patch: Partial<Item>) {
     try {
       const updated = await updateItem(item.id, patch)
       setItem(updated)
-      cleanup()
       onChanged()
     } catch (err) { setError(String(err)) }
-    finally { setSaving(false) }
-  }
-
-  async function saveCategory() {
-    if (!categoryInput.trim() || categoryInput === item.category) { setEditingCategory(false); return }
-    await saveField({ category: categoryInput.trim() }, () => setEditingCategory(false))
-  }
-
-  async function saveSubcategory() {
-    if (subcategoryInput === (item.subcategory ?? '')) { setEditingSubcategory(false); return }
-    await saveField({ subcategory: subcategoryInput.trim() || undefined }, () => setEditingSubcategory(false))
-  }
-
-  async function saveColor() {
-    if (colorInput === (item.primaryColor ?? '')) { setEditingColor(false); return }
-    await saveField({ primaryColor: colorInput.trim() || undefined }, () => setEditingColor(false))
-  }
-
-  async function saveMaterial() {
-    if (materialInput === (item.material ?? '')) { setEditingMaterial(false); return }
-    await saveField({ material: materialInput.trim() || undefined }, () => setEditingMaterial(false))
-  }
-
-  async function saveBrand() {
-    if (brandInput === (item.brand ?? '')) { setEditingBrand(false); return }
-    await saveField({ brand: brandInput.trim() || undefined }, () => setEditingBrand(false))
-  }
-
-  async function saveSize() {
-    if (sizeInput === (item.size ?? '')) { setEditingSize(false); return }
-    await saveField({ size: sizeInput.trim() || undefined }, () => setEditingSize(false))
   }
 
   async function addOccasion(raw: string) {
     const o = raw.trim().toLowerCase()
     if (!o || currentOccasions.includes(o)) { setOccasionInput(''); return }
-    const next = [...currentOccasions, o]
-    try {
-      const updated = await updateItem(item.id, { occasion: next as unknown as string })
-      setItem(updated)
-      setOccasionInput('')
-      onChanged()
-    } catch (err) { setError(String(err)) }
+    await patchItem({ occasion: [...currentOccasions, o] as unknown as string })
+    setOccasionInput('')
   }
 
   async function removeOccasion(o: string) {
-    const next = currentOccasions.filter(x => x !== o)
-    try {
-      const updated = await updateItem(item.id, { occasion: next as unknown as string })
-      setItem(updated)
-      onChanged()
-    } catch (err) { setError(String(err)) }
-  }
-
-  async function addTag(raw: string) {
-    const t = raw.trim().toLowerCase()
-    if (!t || currentTags.includes(t)) { setTagInput(''); return }
-    const next = [...currentTags, t]
-    try {
-      const updated = await updateItem(item.id, { tags: next as unknown as string })
-      setItem(updated)
-      setTagInput('')
-      onChanged()
-    } catch (err) { setError(String(err)) }
-  }
-
-  async function removeTag(t: string) {
-    const next = currentTags.filter(x => x !== t)
-    try {
-      const updated = await updateItem(item.id, { tags: next as unknown as string })
-      setItem(updated)
-      onChanged()
-    } catch (err) { setError(String(err)) }
+    await patchItem({ occasion: currentOccasions.filter(x => x !== o) as unknown as string })
   }
 
   async function addCare(raw: string) {
     const c = raw.trim()
     if (!c || currentCare.includes(c)) { setCareInput(''); return }
-    const next = [...currentCare, c]
-    try {
-      const updated = await updateItem(item.id, { careInstructions: next as unknown as string })
-      setItem(updated)
-      setCareInput('')
-      onChanged()
-    } catch (err) { setError(String(err)) }
+    await patchItem({ careInstructions: [...currentCare, c] as unknown as string })
+    setCareInput('')
   }
 
   async function removeCare(c: string) {
-    const next = currentCare.filter(x => x !== c)
-    try {
-      const updated = await updateItem(item.id, { careInstructions: next as unknown as string })
-      setItem(updated)
-      onChanged()
-    } catch (err) { setError(String(err)) }
+    await patchItem({ careInstructions: currentCare.filter(x => x !== c) as unknown as string })
   }
 
   async function handleDelete() {
@@ -178,51 +87,6 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
     } finally {
       setScanningTag(false)
     }
-  }
-
-  function InlineField({
-    label,
-    value,
-    editing,
-    input,
-    onStartEdit,
-    onInput,
-    onSave,
-    placeholder,
-  }: {
-    label: string
-    value: string | null | undefined
-    editing: boolean
-    input: string
-    onStartEdit: () => void
-    onInput: (v: string) => void
-    onSave: () => void
-    placeholder?: string
-  }) {
-    return (
-      <div>
-        <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">{label}</p>
-        {editing ? (
-          <div className="flex gap-2">
-            <input
-              autoFocus
-              value={input}
-              onChange={e => onInput(e.target.value)}
-              onBlur={onSave}
-              onKeyDown={e => e.key === 'Enter' && onSave()}
-              placeholder={placeholder}
-              className="flex-1 border-2 border-[#111] px-3 py-1.5 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
-            />
-            <Button onClick={onSave} loading={saving} className="shrink-0">Save</Button>
-          </div>
-        ) : (
-          <button onClick={onStartEdit} className="flex items-center gap-2 group">
-            <span className="text-sm font-mono capitalize">{value || <span className="text-[#888]">—</span>}</span>
-            <span className="text-[8px] font-mono text-[#888] uppercase tracking-[0.06em] group-hover:text-[#111]">✎</span>
-          </button>
-        )}
-      </div>
-    )
   }
 
   return (
@@ -253,75 +117,68 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
             />
           </div>
 
-          {/* Category */}
           <InlineField
             label="Category"
             value={item.category}
-            editing={editingCategory}
-            input={categoryInput}
-            onStartEdit={() => { setCategoryInput(item.category); setEditingCategory(true) }}
-            onInput={setCategoryInput}
-            onSave={saveCategory}
+            onSave={async (next) => {
+              if (!next.trim() || next.trim() === item.category) return
+              await patchItem({ category: next.trim() })
+            }}
             placeholder="e.g. tops"
           />
 
-          {/* Type */}
           <InlineField
             label="Type"
             value={item.subcategory}
-            editing={editingSubcategory}
-            input={subcategoryInput}
-            onStartEdit={() => { setSubcategoryInput(item.subcategory ?? ''); setEditingSubcategory(true) }}
-            onInput={setSubcategoryInput}
-            onSave={saveSubcategory}
+            onSave={async (next) => {
+              if (next.trim() === (item.subcategory ?? '')) return
+              await patchItem({ subcategory: next.trim() || undefined })
+            }}
             placeholder="e.g. t-shirt"
           />
 
-          {/* Color */}
           <InlineField
             label="Color"
             value={item.primaryColor}
-            editing={editingColor}
-            input={colorInput}
-            onStartEdit={() => { setColorInput(item.primaryColor ?? ''); setEditingColor(true) }}
-            onInput={setColorInput}
-            onSave={saveColor}
+            onSave={async (next) => {
+              if (next.trim() === (item.primaryColor ?? '')) return
+              await patchItem({ primaryColor: next.trim() || undefined })
+            }}
             placeholder="e.g. navy"
           />
 
-          {/* Material */}
-          <InlineField
-            label="Material"
-            value={item.material}
-            editing={editingMaterial}
-            input={materialInput}
-            onStartEdit={() => { setMaterialInput(item.material ?? ''); setEditingMaterial(true) }}
-            onInput={setMaterialInput}
-            onSave={saveMaterial}
-            placeholder="e.g. cotton"
-          />
+          <div>
+            <InlineField
+              label="Material"
+              value={item.material}
+              onSave={async (next) => {
+                if (next.trim() === (item.material ?? '')) return
+                await patchItem({ material: next.trim() || undefined })
+              }}
+              placeholder="e.g. cotton"
+            />
+            {item.materialSource === 'ocr' && (
+              <p className="text-[7px] font-mono text-[#888] uppercase tracking-[0.06em] mt-1">from label</p>
+            )}
+          </div>
 
-          {/* Brand */}
           <InlineField
             label="Brand"
             value={item.brand}
-            editing={editingBrand}
-            input={brandInput}
-            onStartEdit={() => { setBrandInput(item.brand ?? ''); setEditingBrand(true) }}
-            onInput={setBrandInput}
-            onSave={saveBrand}
+            onSave={async (next) => {
+              if (next.trim() === (item.brand ?? '')) return
+              await patchItem({ brand: next.trim() || undefined })
+            }}
             placeholder="e.g. Nike"
           />
 
-          {/* Size */}
           <InlineField
             label="Size"
             value={item.size}
-            editing={editingSize}
-            input={sizeInput}
-            onStartEdit={() => { setSizeInput(item.size ?? ''); setEditingSize(true) }}
-            onInput={setSizeInput}
-            onSave={saveSize}
+            onSave={async (next) => {
+              if (next.trim() === (item.size ?? '')) return
+              await patchItem({ size: next.trim() || undefined })
+            }}
             placeholder="e.g. M"
           />
 
@@ -401,21 +258,15 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
           {/* Tags */}
           <div>
             <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Tags</p>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {currentTags.map(t => (
-                <span key={t} className="flex items-center gap-1 border-2 border-[#111] px-2 py-0.5 text-[9px] font-mono uppercase tracking-[0.06em]">
-                  {t}
-                  <button onClick={() => removeTag(t)} className="text-[#888] hover:text-[#111] leading-none font-bold">×</button>
-                </span>
-              ))}
-            </div>
-            <input
-              value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); void addTag(tagInput) } }}
-              onBlur={() => { if (tagInput.trim()) void addTag(tagInput) }}
-              placeholder="Add tag, press Enter"
-              className="w-full border-2 border-[#111] px-3 py-1.5 text-[9px] font-mono outline-none focus:bg-[#f0f0f0] placeholder:text-[#888] placeholder:normal-case"
+            <TagEditor
+              tags={currentTags}
+              onChange={async (next) => {
+                try {
+                  const updated = await updateItem(item.id, { tags: next as unknown as string })
+                  setItem(updated)
+                  onChanged()
+                } catch (err) { setError(String(err)) }
+              }}
             />
           </div>
 

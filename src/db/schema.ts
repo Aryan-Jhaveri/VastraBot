@@ -18,6 +18,8 @@ export const items = sqliteTable('items', {
   aiDescription: text('ai_description'),
   occasion: text('occasion').default('[]'),
 
+  materialSource: text('material_source'),
+
   timesWorn: integer('times_worn').default(0),
   lastWornAt: integer('last_worn_at'),
   createdAt: integer('created_at').notNull(),

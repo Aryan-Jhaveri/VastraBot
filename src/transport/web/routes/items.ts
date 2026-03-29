@@ -89,7 +89,11 @@ router.post('/', upload.single('image'), async (req, res) => {
 // PATCH /api/items/:id
 router.patch('/:id', async (req, res) => {
   try {
-    const item = await updateItem(req.params.id, req.body)
+    const body = req.body as Record<string, unknown>
+    if (body.material && typeof body.material === 'string') {
+      body.materialSource = 'manual'
+    }
+    const item = await updateItem(req.params.id, body)
     res.json(item)
   } catch (err) {
     const msg = String(err)
@@ -137,7 +141,10 @@ router.post('/:id/tag', upload.single('image'), async (req, res) => {
     const patch: Record<string, unknown> = { tagImageUri }
     if (tagData.brand && !current.brand) patch.brand = tagData.brand
     if (tagData.size && !current.size) patch.size = tagData.size
-    if (tagData.material_composition) patch.material = tagData.material_composition
+    if (tagData.material_composition) {
+      patch.material = tagData.material_composition
+      patch.materialSource = 'ocr'
+    }
     if (tagData.care_instructions?.length) {
       patch.careInstructions = JSON.stringify(tagData.care_instructions)
     }

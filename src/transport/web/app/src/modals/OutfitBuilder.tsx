@@ -4,6 +4,7 @@ import { createOutfit } from '../api/outfits'
 import { ItemCard } from '../components/ItemCard'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
+import { TagEditor } from '../components/ui/TagEditor'
 
 const SEASONS = ['spring', 'summer', 'fall', 'winter', 'all']
 
@@ -19,7 +20,7 @@ export function OutfitBuilder({ onClose, onCreated }: OutfitBuilderProps) {
   const [name, setName] = useState('')
   const [occasion, setOccasion] = useState('')
   const [selectedSeasons, setSelectedSeasons] = useState<string[]>([])
-  const [tagsInput, setTagsInput] = useState('')
+  const [tags, setTags] = useState<string[]>([])
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +41,6 @@ export function OutfitBuilder({ onClose, onCreated }: OutfitBuilderProps) {
     if (!name.trim()) { setError('Name is required'); return }
     setSaving(true)
     setError(null)
-    const tags = tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
     try {
       await createOutfit({
         name: name.trim(),
@@ -186,13 +186,7 @@ export function OutfitBuilder({ onClose, onCreated }: OutfitBuilderProps) {
             {/* Tags */}
             <div className="flex flex-col gap-1">
               <label className="text-[8px] font-mono text-[#888] uppercase tracking-[0.08em]">Tags</label>
-              <input
-                value={tagsInput}
-                onChange={e => setTagsInput(e.target.value)}
-                placeholder="vintage, minimalist, monochrome"
-                className="border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
-              />
-              <p className="text-[7px] font-mono text-[#888] uppercase tracking-[0.06em]">Comma-separated</p>
+              <TagEditor tags={tags} onChange={setTags} placeholder="Add tag, press Enter" />
             </div>
 
             {/* Notes */}
