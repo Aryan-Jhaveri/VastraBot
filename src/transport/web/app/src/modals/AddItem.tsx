@@ -164,7 +164,7 @@ export function AddItem({ onClose, onSaved }: AddItemProps) {
               <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em]">Step 2 — Analyzing</p>
               {preview && (
                 <div className="flex justify-center">
-                  <img src={preview} alt="Preview" className="w-28 aspect-[4/5] object-cover border-2 border-[#111]" />
+                  <img src={preview} alt="Preview" className="w-28 aspect-[4/5] object-contain border-2 border-[#111]" />
                 </div>
               )}
               <div className="border-2 border-[#111] p-3">
@@ -185,7 +185,7 @@ export function AddItem({ onClose, onSaved }: AddItemProps) {
             <>
               <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em]">Step 3 — Confirm</p>
               <div className="flex gap-3">
-                <img src={preview} alt="Preview" className="w-14 aspect-[4/5] shrink-0 object-cover border-2 border-[#111]" />
+                <img src={preview} alt="Preview" className="w-14 aspect-[4/5] shrink-0 object-contain border-2 border-[#111]" />
                 <div className="flex-1 flex flex-col gap-1.5">
                   {[
                     { label: 'Cat.', value: category, set: setCategory },

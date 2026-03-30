@@ -24,7 +24,7 @@ export function OutfitCard({ suggestion, onSave, saving }: OutfitCardProps) {
             <img
               src={`/${item.imageUri}`}
               alt={item.subcategory ?? item.category}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           </div>
         ))}

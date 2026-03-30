@@ -135,7 +135,7 @@ export function OutfitBuilder({ onClose, onCreated }: OutfitBuilderProps) {
                   if (!item) return null
                   return (
                     <div key={id} className="shrink-0 w-14 h-[72px] border-2 border-[#111] overflow-hidden">
-                      <img src={`/${item.imageUri}`} alt={item.subcategory ?? item.category} className="h-full w-full object-cover" />
+                      <img src={`/${item.imageUri}`} alt={item.subcategory ?? item.category} className="h-full w-full object-contain" />
                     </div>
                   )
                 })}

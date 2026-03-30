@@ -16,22 +16,22 @@ export function SavedOutfitCard({ outfit, onClick }: SavedOutfitCardProps) {
       className="relative overflow-hidden border-2 border-[#111] text-left bg-white w-full"
     >
       {/* Photo area: cover photo OR 2×2 grid */}
-      <div className="aspect-square overflow-hidden border-b-2 border-[#111] bg-[#f0f0f0]">
+      <div className="relative aspect-square overflow-hidden border-b-2 border-[#111] bg-[#f0f0f0]">
         {outfit.coverImageUri ? (
           <img
             src={`/${outfit.coverImageUri}`}
             alt={outfit.name}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain"
             loading="lazy"
           />
         ) : (
           <div className="grid grid-cols-2 h-full">
             {thumbnails.map((item, i) => (
-              <div key={item.id} className={`overflow-hidden ${i < 2 ? 'border-b border-[#d0d0d0]' : ''} ${i % 2 === 0 ? 'border-r border-[#d0d0d0]' : ''}`}>
+              <div key={item.id} className={`relative overflow-hidden ${i < 2 ? 'border-b border-[#d0d0d0]' : ''} ${i % 2 === 0 ? 'border-r border-[#d0d0d0]' : ''}`}>
                 <img
                   src={`/${item.imageUri}`}
                   alt={item.subcategory ?? item.category}
-                  className="h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-contain"
                   loading="lazy"
                 />
               </div>

@@ -15,11 +15,11 @@ export function ItemCard({ item, onClick, selected, selectable }: ItemCardProps)
         selected ? 'border-[#111] ring-2 ring-[#111] ring-offset-1' : 'border-[#111]'
       } bg-white`}
     >
-      <div className="aspect-[4/5] overflow-hidden bg-[#f0f0f0] border-b-2 border-[#111]">
+      <div className="relative aspect-[4/5] overflow-hidden bg-[#f0f0f0] border-b-2 border-[#111]">
         <img
           src={`/${item.imageUri}`}
           alt={item.subcategory ?? item.category}
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
           loading="lazy"
         />
       </div>

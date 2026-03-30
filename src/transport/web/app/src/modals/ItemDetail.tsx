@@ -113,7 +113,7 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
             <img
               src={`/${item.imageUri}`}
               alt={item.subcategory ?? item.category}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-contain"
             />
           </div>
 
@@ -278,7 +278,7 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
             {item.tagImageUri ? (
               <div className="flex items-start gap-3">
                 <div className="relative w-16 h-20 shrink-0 overflow-hidden border-2 border-[#111]">
-                  <img src={`/${item.tagImageUri}`} alt="Care label" className="absolute inset-0 h-full w-full object-cover" />
+                  <img src={`/${item.tagImageUri}`} alt="Care label" className="absolute inset-0 h-full w-full object-contain" />
                 </div>
                 <div className="flex-1 flex flex-col gap-1">
                   {currentCare.length > 0 && (

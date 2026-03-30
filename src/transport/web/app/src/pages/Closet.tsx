@@ -3,12 +3,13 @@ import { useItems } from '../hooks/useItems'
 import { ItemCard } from '../components/ItemCard'
 import { CategoryFilter } from '../components/CategoryFilter'
 import { FilterBar } from '../components/FilterBar'
+import { ChipToggle } from '../components/ui/ChipToggle'
 import { AddItem } from '../modals/AddItem'
 import { ItemDetail } from '../modals/ItemDetail'
 import { Spinner } from '../components/ui/Spinner'
 import type { Item } from '../api/items'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 12
 const SEASONS = ['spring', 'summer', 'fall', 'winter', 'all']
 const OCCASIONS = ['casual', 'work', 'formal', 'outdoor', 'date']
 
@@ -18,7 +19,7 @@ export function Closet() {
   const [season, setSeason] = useState('')
   const [occasion, setOccasion] = useState('')
   const [brand, setBrand] = useState('')
-  const [tag, setTag] = useState('')
+  const [tags, setTags] = useState<string[]>([])
   const [page, setPage] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [selected, setSelected] = useState<Item | null>(null)
@@ -29,7 +30,7 @@ export function Closet() {
     season: season || undefined,
     occasion: occasion || undefined,
     brand: brand || undefined,
-    tags: tag ? [tag] : undefined,
+    tags: tags.length ? tags : undefined,
     page,
     limit: PAGE_SIZE,
   })
@@ -60,8 +61,8 @@ export function Closet() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  const filterValues = { color, season, occasion, brand, tag }
-  const activeFilterCount = [color, season, occasion, brand, tag].filter(Boolean).length
+  const filterValues = { color, season, occasion, brand }
+  const activeFilterCount = [color, season, occasion, brand, ...tags].filter(Boolean).length
 
   function handleFilterChange(key: string, value: string) {
     setPage(1)
@@ -69,11 +70,10 @@ export function Closet() {
     else if (key === 'season') setSeason(value)
     else if (key === 'occasion') setOccasion(value)
     else if (key === 'brand') setBrand(value)
-    else if (key === 'tag') setTag(value)
   }
 
   function clearFilters() {
-    setColor(''); setSeason(''); setOccasion(''); setBrand(''); setTag('')
+    setColor(''); setSeason(''); setOccasion(''); setBrand(''); setTags([])
     setPage(1)
   }
 
@@ -87,7 +87,6 @@ export function Closet() {
     { key: 'season', label: 'Season', options: SEASONS },
     { key: 'occasion', label: 'Occasion', options: OCCASIONS },
     ...(brands.length >= 2 ? [{ key: 'brand', label: 'Brand', options: brands }] : []),
-    ...(allTags.length > 0 ? [{ key: 'tag', label: 'Tag', options: allTags }] : []),
   ]
 
   return (
@@ -116,6 +115,13 @@ export function Closet() {
           onClear={clearFilters}
           activeCount={activeFilterCount}
         />
+      )}
+
+      {allTags.length > 0 && (
+        <div>
+          <p className="text-[8px] font-mono text-[#888] uppercase tracking-[0.1em] mb-1.5">Tags</p>
+          <ChipToggle options={allTags} selected={tags} onChange={(next) => { setTags(next); setPage(1) }} />
+        </div>
       )}
 
       {loading && (

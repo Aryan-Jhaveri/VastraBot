@@ -58,7 +58,6 @@ export function TryOn() {
   // Result
   const [generating, setGenerating] = useState(false)
   const [resultUri, setResultUri] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // History
@@ -227,7 +226,6 @@ export function TryOn() {
     if (!selectedPhotoId || (selectedItemIds.size === 0 && uploadedGarments.length === 0)) return
     setGenerating(true)
     setError(null)
-    setSaved(false)
     setStep('result')
     try {
       const garmentUris = uploadedGarments
@@ -250,31 +248,7 @@ export function TryOn() {
   function tryAgain() {
     setStep('pick-items')
     setResultUri(null)
-    setSaved(false)
     setError(null)
-  }
-
-  async function handleSaveToDevice() {
-    if (!resultUri) return
-    // Try native share (adds to Photos on iOS)
-    if (navigator.share && navigator.canShare) {
-      try {
-        const res = await fetch(`/${resultUri}`)
-        const blob = await res.blob()
-        const file = new File([blob], `tryon-${Date.now()}.jpg`, { type: 'image/jpeg' })
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file] })
-          setSaved(true)
-          return
-        }
-      } catch { /* fall through to download */ }
-    }
-    // Fallback: trigger browser download
-    const a = document.createElement('a')
-    a.href = `/${resultUri}`
-    a.download = `tryon-${Date.now()}.jpg`
-    a.click()
-    setSaved(true)
   }
 
   function previewHistory(item: TryonHistoryItem) {
@@ -338,15 +312,24 @@ export function TryOn() {
                     <img src={`/${previewingHistoryUri}`} alt="History result" className="w-full h-full object-contain" />
                     <button
                       onClick={clearHistoryPreview}
-                      className="absolute top-2 left-2 bg-[#111]/80 text-white px-2 py-1 text-[8px] font-bold font-mono uppercase tracking-[0.06em] hover:bg-[#111] transition-colors"
+                      className="absolute top-2 left-2 w-8 h-8 bg-[#111] text-white flex items-center justify-center text-base font-bold hover:bg-[#444] transition-colors"
+                      title="Back"
                     >
-                      ← Photo
+                      ←
+                    </button>
+                    <button
+                      onClick={() => selectedHistoryId && void handleDeleteHistory(selectedHistoryId)}
+                      disabled={!!(selectedHistoryId && deletingHistoryId === selectedHistoryId)}
+                      className="absolute top-2 right-2 w-8 h-8 bg-[#111] text-white flex items-center justify-center text-base font-bold hover:bg-[#444] disabled:opacity-50 transition-colors"
+                      title="Delete"
+                    >
+                      {selectedHistoryId && deletingHistoryId === selectedHistoryId ? <Spinner size={14} /> : '×'}
                     </button>
                   </>
                 ) : (
                   <>
                     {selectedPhoto && (
-                      <img src={`/${selectedPhoto.imageUri}`} alt="You" className="w-full h-full object-cover" />
+                      <img src={`/${selectedPhoto.imageUri}`} alt="You" className="w-full h-full object-contain" />
                     )}
                     {selectedPhoto && (
                       <button
@@ -375,7 +358,7 @@ export function TryOn() {
                           : 'border-[#888] hover:border-[#111]'
                       }`}
                     >
-                      <img src={`/${photo.imageUri}`} alt="You" className="w-full h-full object-cover" />
+                      <img src={`/${photo.imageUri}`} alt="You" className="w-full h-full object-contain" />
                     </button>
                   ))}
                   {photos.length < 4 && (
@@ -405,14 +388,7 @@ export function TryOn() {
                           : 'border-[#888] hover:border-[#111]'
                       }`}
                     >
-                      <img src={`/${h.resultImageUri}`} alt="Past result" className="w-full h-full object-cover" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteHistory(h.id)}
-                      disabled={deletingHistoryId === h.id}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#111] text-white flex items-center justify-center text-xs font-bold hover:bg-[#444] disabled:opacity-50 transition-colors z-10"
-                    >
-                      {deletingHistoryId === h.id ? '…' : '×'}
+                      <img src={`/${h.resultImageUri}`} alt="Past result" className="w-full h-full object-contain" />
                     </button>
                   </div>
                 ))}
@@ -517,7 +493,7 @@ export function TryOn() {
                     <div className="shrink-0 w-16 h-16 grid grid-cols-2 gap-[2px] overflow-hidden border border-[#888]">
                       {outfit.items.slice(0, 4).map(item => (
                         <div key={item.id} className="overflow-hidden bg-[#f0f0f0]">
-                          <img src={`/${item.imageUri}`} alt="" className="w-full h-full object-cover" />
+                          <img src={`/${item.imageUri}`} alt="" className="w-full h-full object-contain" />
                         </div>
                       ))}
                     </div>
@@ -546,7 +522,7 @@ export function TryOn() {
                 <div className="grid grid-cols-3 gap-[3px]">
                   {uploadedGarments.map(g => (
                     <div key={g.localId} className="relative aspect-square overflow-hidden border-2 border-[#111]">
-                      <img src={g.previewUrl} alt="Garment" className="w-full h-full object-cover" />
+                      <img src={g.previewUrl} alt="Garment" className="w-full h-full object-contain" />
                       {g.uploading && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                           <Spinner size={24} />
@@ -577,7 +553,7 @@ export function TryOn() {
                   if (!item) return null
                   return (
                     <div key={id} className="shrink-0 w-12 h-[60px] border-2 border-[#111] overflow-hidden">
-                      <img src={`/${item.imageUri}`} alt="" className="h-full w-full object-cover" />
+                      <img src={`/${item.imageUri}`} alt="" className="h-full w-full object-contain" />
                     </div>
                   )
                 })}
@@ -628,14 +604,9 @@ export function TryOn() {
               <div className="border-2 border-[#111] overflow-hidden">
                 <img src={`/${resultUri}`} alt="Try-on result" className="w-full min-h-[60vh] object-contain bg-[#f0f0f0]" />
               </div>
-              <div className="flex gap-2">
-                <Button onClick={handleSaveToDevice} disabled={saved} className="flex-1">
-                  {saved ? 'Saved ✓' : 'Save to Device'}
-                </Button>
-                <Button onClick={tryAgain} variant="secondary" className="flex-1">
-                  Try Again
-                </Button>
-              </div>
+              <Button onClick={tryAgain} variant="secondary" className="w-full">
+                Try Again
+              </Button>
             </>
           )}
         </>
