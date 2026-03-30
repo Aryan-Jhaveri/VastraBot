@@ -58,7 +58,6 @@ export function TryOn() {
   // Result
   const [generating, setGenerating] = useState(false)
   const [resultUri, setResultUri] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // History
@@ -227,7 +226,6 @@ export function TryOn() {
     if (!selectedPhotoId || (selectedItemIds.size === 0 && uploadedGarments.length === 0)) return
     setGenerating(true)
     setError(null)
-    setSaved(false)
     setStep('result')
     try {
       const garmentUris = uploadedGarments
@@ -250,39 +248,7 @@ export function TryOn() {
   function tryAgain() {
     setStep('pick-items')
     setResultUri(null)
-    setSaved(false)
     setError(null)
-  }
-
-  async function downloadImage(uri: string) {
-    const res = await fetch(`/${uri}`)
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `tryon-${Date.now()}.jpg`
-    document.body.appendChild(a)
-    a.click()
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url) }, 60_000)
-  }
-
-  async function handleSaveToDevice() {
-    if (!resultUri) return
-    // Try native share (adds to Photos on iOS)
-    if (navigator.share && navigator.canShare) {
-      try {
-        const res = await fetch(`/${resultUri}`)
-        const blob = await res.blob()
-        const file = new File([blob], `tryon-${Date.now()}.jpg`, { type: 'image/jpeg' })
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file] })
-          setSaved(true)
-          return
-        }
-      } catch { /* fall through to download */ }
-    }
-    await downloadImage(resultUri)
-    setSaved(true)
   }
 
   function previewHistory(item: TryonHistoryItem) {
@@ -346,9 +312,18 @@ export function TryOn() {
                     <img src={`/${previewingHistoryUri}`} alt="History result" className="w-full h-full object-contain" />
                     <button
                       onClick={clearHistoryPreview}
-                      className="absolute top-2 left-2 bg-[#111]/80 text-white px-2 py-1 text-[8px] font-bold font-mono uppercase tracking-[0.06em] hover:bg-[#111] transition-colors"
+                      className="absolute top-2 left-2 w-8 h-8 bg-[#111] text-white flex items-center justify-center text-base font-bold hover:bg-[#444] transition-colors"
+                      title="Back"
                     >
-                      ← Photo
+                      ←
+                    </button>
+                    <button
+                      onClick={() => selectedHistoryId && void handleDeleteHistory(selectedHistoryId)}
+                      disabled={!!(selectedHistoryId && deletingHistoryId === selectedHistoryId)}
+                      className="absolute top-2 right-2 w-8 h-8 bg-[#111] text-white flex items-center justify-center text-base font-bold hover:bg-[#444] disabled:opacity-50 transition-colors"
+                      title="Delete"
+                    >
+                      {selectedHistoryId && deletingHistoryId === selectedHistoryId ? <Spinner size={14} /> : '×'}
                     </button>
                   </>
                 ) : (
@@ -414,22 +389,6 @@ export function TryOn() {
                       }`}
                     >
                       <img src={`/${h.resultImageUri}`} alt="Past result" className="w-full h-full object-contain" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteHistory(h.id)}
-                      disabled={deletingHistoryId === h.id}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#111] text-white flex items-center justify-center text-xs font-bold hover:bg-[#444] disabled:opacity-50 transition-colors z-10"
-                    >
-                      {deletingHistoryId === h.id ? '…' : '×'}
-                    </button>
-                    <button
-                      onClick={() => void downloadImage(h.resultImageUri)}
-                      className="absolute -bottom-1.5 -right-1.5 w-5 h-5 bg-[#111] text-white flex items-center justify-center hover:bg-[#444] transition-colors z-10"
-                      title="Download"
-                    >
-                      <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-                        <path d="M5 1v6M2 5l3 3 3-3M1 9h8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
                     </button>
                   </div>
                 ))}
@@ -645,14 +604,9 @@ export function TryOn() {
               <div className="border-2 border-[#111] overflow-hidden">
                 <img src={`/${resultUri}`} alt="Try-on result" className="w-full min-h-[60vh] object-contain bg-[#f0f0f0]" />
               </div>
-              <div className="flex gap-2">
-                <Button onClick={handleSaveToDevice} disabled={saved} className="flex-1">
-                  {saved ? 'Saved ✓' : 'Save to Device'}
-                </Button>
-                <Button onClick={tryAgain} variant="secondary" className="flex-1">
-                  Try Again
-                </Button>
-              </div>
+              <Button onClick={tryAgain} variant="secondary" className="w-full">
+                Try Again
+              </Button>
             </>
           )}
         </>
