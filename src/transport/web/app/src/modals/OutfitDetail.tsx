@@ -90,7 +90,7 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
             </p>
             {outfit.coverImageUri ? (
               <div className="relative aspect-square overflow-hidden border-2 border-[#111]">
-                <img src={`/${outfit.coverImageUri}`} alt="Cover" className="absolute inset-0 h-full w-full object-cover" />
+                <img src={`/${outfit.coverImageUri}`} alt="Cover" className="absolute inset-0 h-full w-full object-contain" />
                 <div className="absolute bottom-2 right-2 flex gap-1.5">
                   <button
                     onClick={handleRemoveCover}
@@ -190,7 +190,7 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
                   <img
                     src={`/${item.imageUri}`}
                     alt={item.subcategory ?? item.category}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain"
                   />
                 </div>
               ))}

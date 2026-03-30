@@ -354,7 +354,7 @@ export function TryOn() {
                 ) : (
                   <>
                     {selectedPhoto && (
-                      <img src={`/${selectedPhoto.imageUri}`} alt="You" className="w-full h-full object-cover" />
+                      <img src={`/${selectedPhoto.imageUri}`} alt="You" className="w-full h-full object-contain" />
                     )}
                     {selectedPhoto && (
                       <button
@@ -383,7 +383,7 @@ export function TryOn() {
                           : 'border-[#888] hover:border-[#111]'
                       }`}
                     >
-                      <img src={`/${photo.imageUri}`} alt="You" className="w-full h-full object-cover" />
+                      <img src={`/${photo.imageUri}`} alt="You" className="w-full h-full object-contain" />
                     </button>
                   ))}
                   {photos.length < 4 && (
@@ -413,7 +413,7 @@ export function TryOn() {
                           : 'border-[#888] hover:border-[#111]'
                       }`}
                     >
-                      <img src={`/${h.resultImageUri}`} alt="Past result" className="w-full h-full object-cover" />
+                      <img src={`/${h.resultImageUri}`} alt="Past result" className="w-full h-full object-contain" />
                     </button>
                     <button
                       onClick={() => handleDeleteHistory(h.id)}
@@ -534,7 +534,7 @@ export function TryOn() {
                     <div className="shrink-0 w-16 h-16 grid grid-cols-2 gap-[2px] overflow-hidden border border-[#888]">
                       {outfit.items.slice(0, 4).map(item => (
                         <div key={item.id} className="overflow-hidden bg-[#f0f0f0]">
-                          <img src={`/${item.imageUri}`} alt="" className="w-full h-full object-cover" />
+                          <img src={`/${item.imageUri}`} alt="" className="w-full h-full object-contain" />
                         </div>
                       ))}
                     </div>
@@ -563,7 +563,7 @@ export function TryOn() {
                 <div className="grid grid-cols-3 gap-[3px]">
                   {uploadedGarments.map(g => (
                     <div key={g.localId} className="relative aspect-square overflow-hidden border-2 border-[#111]">
-                      <img src={g.previewUrl} alt="Garment" className="w-full h-full object-cover" />
+                      <img src={g.previewUrl} alt="Garment" className="w-full h-full object-contain" />
                       {g.uploading && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                           <Spinner size={24} />
@@ -594,7 +594,7 @@ export function TryOn() {
                   if (!item) return null
                   return (
                     <div key={id} className="shrink-0 w-12 h-[60px] border-2 border-[#111] overflow-hidden">
-                      <img src={`/${item.imageUri}`} alt="" className="h-full w-full object-cover" />
+                      <img src={`/${item.imageUri}`} alt="" className="h-full w-full object-contain" />
                     </div>
                   )
                 })}

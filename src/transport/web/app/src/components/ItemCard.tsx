@@ -19,7 +19,7 @@ export function ItemCard({ item, onClick, selected, selectable }: ItemCardProps)
         <img
           src={`/${item.imageUri}`}
           alt={item.subcategory ?? item.category}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
           loading="lazy"
         />
       </div>

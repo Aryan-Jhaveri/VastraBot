@@ -21,7 +21,7 @@ export function SavedOutfitCard({ outfit, onClick }: SavedOutfitCardProps) {
           <img
             src={`/${outfit.coverImageUri}`}
             alt={outfit.name}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain"
             loading="lazy"
           />
         ) : (
@@ -31,7 +31,7 @@ export function SavedOutfitCard({ outfit, onClick }: SavedOutfitCardProps) {
                 <img
                   src={`/${item.imageUri}`}
                   alt={item.subcategory ?? item.category}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-contain"
                   loading="lazy"
                 />
               </div>
