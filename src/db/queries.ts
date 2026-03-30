@@ -1,5 +1,5 @@
 import { db } from './client.js'
-import { items, outfits, userPhotos, tryonResults } from './schema.js'
+import { items, outfits, userPhotos, tryonResults, settings } from './schema.js'
 import { eq, like, desc, inArray, and, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import type {
@@ -183,4 +183,15 @@ export function insertTryonResult(data: Omit<NewTryonResult, 'id' | 'createdAt'>
 
 export function deleteTryonResult(id: string): void {
   db.delete(tryonResults).where(eq(tryonResults.id, id)).run()
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+
+export function getSetting(key: string): string | null {
+  const row = db.select().from(settings).where(eq(settings.key, key)).get() as { value: string } | undefined
+  return row?.value ?? null
+}
+
+export function setSetting(key: string, value: string): void {
+  db.insert(settings).values({ key, value }).onConflictDoUpdate({ target: settings.key, set: { value } }).run()
 }

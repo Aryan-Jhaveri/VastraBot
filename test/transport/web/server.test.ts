@@ -61,6 +61,11 @@ vi.mock('../../../src/jobs/seed.js', () => ({
   seedDefaultJobs: vi.fn(),
 }))
 
+vi.mock('../../../src/db/queries.js', () => ({
+  getSetting: vi.fn().mockReturnValue(null), // no DB password; tests use env var
+  setSetting: vi.fn(),
+}))
+
 vi.mock('../../../src/jobs/types/index.js', () => ({
   registerBuiltInJobTypes: vi.fn(),
 }))

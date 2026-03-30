@@ -4,7 +4,10 @@ import * as queries from '../../../db/queries.js'
 import { saveImageFromBase64 } from '../../../storage/images.js'
 
 const router = Router()
-const upload = multer({ storage: multer.memoryStorage() })
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } })
+
+const isProd = process.env.NODE_ENV === 'production'
+const errMsg = (err: unknown) => isProd ? 'Internal server error' : String(err)
 
 // GET /api/user-photos
 router.get('/', (_req, res) => {
@@ -12,7 +15,7 @@ router.get('/', (_req, res) => {
     const photos = queries.getUserPhotos()
     res.json(photos)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -20,6 +23,7 @@ router.get('/', (_req, res) => {
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image provided' })
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'File must be an image' })
     const base64 = req.file.buffer.toString('base64')
     const { label, isPrimary } = req.body as { label?: string; isPrimary?: string }
 
@@ -42,7 +46,7 @@ router.post('/', upload.single('image'), async (req, res) => {
 
     res.status(201).json(photo)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -53,7 +57,7 @@ router.patch('/:id/primary', (req, res) => {
     if (!photo) return res.status(404).json({ error: 'Not found' })
     res.json(photo)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -63,7 +67,7 @@ router.delete('/:id', (req, res) => {
     queries.deleteUserPhoto(req.params.id)
     res.status(204).send()
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
