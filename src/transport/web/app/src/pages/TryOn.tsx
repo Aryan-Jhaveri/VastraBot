@@ -263,8 +263,7 @@ export function TryOn() {
     a.download = `tryon-${Date.now()}.jpg`
     document.body.appendChild(a)
     a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url) }, 60_000)
   }
 
   async function handleSaveToDevice() {
