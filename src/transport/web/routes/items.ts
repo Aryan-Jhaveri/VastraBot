@@ -7,7 +7,10 @@ import { saveImageFromBase64 } from '../../../storage/images.js'
 import { updateItem as dbUpdateItem, getUniqueTags } from '../../../db/queries.js'
 
 const router = Router()
-const upload = multer({ storage: multer.memoryStorage() })
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } })
+
+const isProd = process.env.NODE_ENV === 'production'
+const errMsg = (err: unknown) => isProd ? 'Internal server error' : String(err)
 
 // GET /api/items?category=&page=&limit=
 router.get('/', async (req, res) => {
@@ -29,7 +32,7 @@ router.get('/', async (req, res) => {
 
     res.json({ items, total, page: pageNum, pageSize })
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -40,7 +43,7 @@ router.get('/:id', async (req, res) => {
     if (!item) return res.status(404).json({ error: 'Not found' })
     res.json(item)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -48,12 +51,13 @@ router.get('/:id', async (req, res) => {
 router.post('/analyze', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image provided' })
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'File must be an image' })
     const base64 = req.file.buffer.toString('base64')
     const existingTags = getUniqueTags()
     const classification = await categorizeItem(base64, existingTags)
     res.json(classification)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -61,6 +65,7 @@ router.post('/analyze', upload.single('image'), async (req, res) => {
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image provided' })
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'File must be an image' })
     const base64 = req.file.buffer.toString('base64')
     const body = req.body as Record<string, string>
 
@@ -83,7 +88,7 @@ router.post('/', upload.single('image'), async (req, res) => {
 
     res.status(201).json(item)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -98,8 +103,8 @@ router.patch('/:id', async (req, res) => {
     res.json(item)
   } catch (err) {
     const msg = String(err)
-    if (msg.includes('not found')) return res.status(404).json({ error: msg })
-    res.status(500).json({ error: msg })
+    if (msg.includes('not found')) return res.status(404).json({ error: 'Item not found' })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -109,7 +114,7 @@ router.delete('/:id', async (req, res) => {
     await deleteItem(req.params.id)
     res.status(204).send()
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -120,8 +125,8 @@ router.post('/:id/worn', async (req, res) => {
     res.json(item)
   } catch (err) {
     const msg = String(err)
-    if (msg.includes('not found')) return res.status(404).json({ error: msg })
-    res.status(500).json({ error: msg })
+    if (msg.includes('not found')) return res.status(404).json({ error: 'Item not found' })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -129,6 +134,7 @@ router.post('/:id/worn', async (req, res) => {
 router.post('/:id/tag', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image provided' })
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'File must be an image' })
     const itemId = String(req.params.id)
     const current = await getItem(itemId)
     if (!current) return res.status(404).json({ error: 'Not found' })
@@ -154,7 +160,7 @@ router.post('/:id/tag', upload.single('image'), async (req, res) => {
     const item = dbUpdateItem(itemId, patch)
     res.json({ item, tagData })
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 

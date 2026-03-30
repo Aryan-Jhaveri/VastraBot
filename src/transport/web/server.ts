@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import { rateLimit } from 'express-rate-limit'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { existsSync } from 'fs'
@@ -10,7 +11,8 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { db, DATA_DIR } from '../../db/client.js'
 import { mkdirSync } from 'fs'
 import { resolveImagePath } from '../../storage/images.js'
-import { authGuard } from './middleware.js'
+import { authGuard, getPassword } from './middleware.js'
+import { getSetting, setSetting } from '../../db/queries.js'
 import itemsRouter from './routes/items.js'
 import outfitsRouter from './routes/outfits.js'
 import weatherRouter from './routes/weather.js'
@@ -53,6 +55,12 @@ migrate(db, { migrationsFolder })
 // Seed default jobs (idempotent — only inserts if missing)
 seedDefaultJobs()
 
+// Seed WEB_AUTH_PASSWORD env var into DB settings on first startup
+if (process.env.WEB_AUTH_PASSWORD && !getSetting('password')) {
+  setSetting('password', process.env.WEB_AUTH_PASSWORD)
+  console.log('[server] Seeded WEB_AUTH_PASSWORD into settings DB')
+}
+
 // Start scheduler if a bot token is configured (API-only — no polling)
 export let schedulerBotApi: Api | null = null
 
@@ -70,6 +78,7 @@ const app = express()
 const PORT = parseInt(process.env.WEB_PORT ?? '3000', 10)
 const isDev = process.env.NODE_ENV !== 'production'
 
+
 // Cookie parser (for image auth cookie)
 app.use(cookieParser())
 
@@ -81,10 +90,33 @@ if (isDev) {
   }))
 }
 
+// Production security headers
+if (!isDev) {
+  app.use((_req, res, next) => {
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://web.telegram.org")
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    next()
+  })
+}
+
 app.use(express.json())
 
+// Rate limiting on auth endpoints — 10 attempts per 15 min per IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts, try again later' },
+})
+
+// Public — frontend checks this to decide first-run vs login vs open access
+app.get('/api/auth/status', (_req, res) => {
+  res.json({ hasPassword: Boolean(getPassword()) })
+})
+
 // Telegram Mini App auth — validates initData signed by bot token
-app.post('/api/auth/telegram', (req, res) => {
+app.post('/api/auth/telegram', authLimiter, (req, res) => {
   const { initData } = req.body as { initData?: string }
   const botToken = process.env.TELEGRAM_BOT_TOKEN
   if (!botToken || !initData) {
@@ -93,15 +125,15 @@ app.post('/api/auth/telegram', (req, res) => {
   if (!validateTelegramInitData(initData, botToken)) {
     return res.status(401).json({ error: 'Invalid Telegram data' })
   }
-  const password = process.env.WEB_AUTH_PASSWORD ?? ''
-  res.cookie('closet-auth', password, { httpOnly: true, sameSite: 'none', secure: true })
-  res.json({ token: password })
+  const token = getPassword() ?? ''
+  res.cookie('closet-auth', token, { httpOnly: true, sameSite: 'none', secure: true })
+  res.json({ token })
 })
 
-// Auth login endpoint (unguarded — sets httpOnly cookie as backup for image requests)
-app.post('/api/auth', (req, res) => {
+// Auth login endpoint — sets httpOnly cookie as backup for image requests
+app.post('/api/auth', authLimiter, (req, res) => {
   const { password } = req.body as { password?: string }
-  const expected = process.env.WEB_AUTH_PASSWORD
+  const expected = getPassword()
   if (expected && password !== expected) {
     return res.status(401).json({ error: 'Wrong password' })
   }
@@ -111,6 +143,37 @@ app.post('/api/auth', (req, res) => {
     secure: !isDev,
   })
   res.json({ ok: true })
+})
+
+// Logout — clears the httpOnly auth cookie
+app.post('/api/auth/logout', (_req, res) => {
+  res.clearCookie('closet-auth', {
+    httpOnly: true,
+    sameSite: isDev ? 'lax' : 'none',
+    secure: !isDev,
+  })
+  res.json({ ok: true })
+})
+
+// Set or change password — open when no password exists (first-run), requires current otherwise
+app.post('/api/settings/password', authLimiter, (req, res) => {
+  const { current, newPassword } = req.body as { current?: string; newPassword?: string }
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' })
+  }
+  const existing = getPassword()
+  if (existing) {
+    if (!current || current !== existing) {
+      return res.status(401).json({ error: 'Current password is incorrect' })
+    }
+  }
+  setSetting('password', newPassword)
+  res.cookie('closet-auth', newPassword, {
+    httpOnly: true,
+    sameSite: isDev ? 'lax' : 'none',
+    secure: !isDev,
+  })
+  res.json({ token: newPassword })
 })
 
 // Image serving — protected by auth guard

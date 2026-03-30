@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
-import { getToken, setToken, apiFetchJSON } from './api/client'
+import { getToken, setToken, clearToken } from './api/client'
 import { Home } from './pages/Home'
 import { Closet } from './pages/Closet'
 import { Outfits } from './pages/Outfits'
@@ -8,6 +8,7 @@ import { TryOn } from './pages/TryOn'
 import { Settings } from './pages/Settings'
 import { Jobs } from './pages/Jobs'
 import { Login } from './pages/Login'
+import { SetupPassword } from './pages/SetupPassword'
 import { Spinner } from './components/ui/Spinner'
 
 const NAV_ITEMS = [
@@ -41,20 +42,20 @@ function BottomNav() {
   )
 }
 
+type AuthState = 'loading' | 'setup' | 'login' | 'authed'
+
 export function App() {
-  const [authed, setAuthed] = useState<boolean | null>(null)
+  const [authState, setAuthState] = useState<AuthState>('loading')
 
   useEffect(() => {
     async function checkAuth() {
       const tg = (window as unknown as { Telegram?: { WebApp?: { initData: string; ready(): void; expand(): void } } }).Telegram
 
       // Always signal ready + expand immediately — must happen before any async work
-      // or Telegram's loading spinner never dismisses
       if (tg?.WebApp) {
         tg.WebApp.ready()
         tg.WebApp.expand()
 
-        // Authenticate via initData when available
         if (tg.WebApp.initData) {
           try {
             const res = await fetch('/api/auth/telegram', {
@@ -65,20 +66,43 @@ export function App() {
             if (res.ok) {
               const { token } = await res.json() as { token: string }
               setToken(token)
-              setAuthed(true)
+              setAuthState('authed')
               return
             }
-          } catch { /* fall through to password auth */ }
+          } catch { /* fall through */ }
         }
       }
 
-      // No password required — open access
-      setAuthed(true)
+      // Check whether a password has been configured
+      try {
+        const { hasPassword } = await fetch('/api/auth/status').then(r => r.json()) as { hasPassword: boolean }
+        if (!hasPassword) {
+          setAuthState('setup')
+          return
+        }
+      } catch {
+        setAuthState('setup')
+        return
+      }
+
+      // Password exists — verify stored token
+      const token = getToken()
+      if (token) {
+        try {
+          const res = await fetch('/api/items?limit=1', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (res.ok) { setAuthState('authed'); return }
+        } catch { /* fall through */ }
+        clearToken()
+      }
+
+      setAuthState('login')
     }
     void checkAuth()
   }, [])
 
-  if (authed === null) {
+  if (authState === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <Spinner />
@@ -86,8 +110,12 @@ export function App() {
     )
   }
 
-  if (!authed) {
-    return <Login onLogin={() => setAuthed(true)} />
+  if (authState === 'setup') {
+    return <SetupPassword onSetup={(token) => { setToken(token); setAuthState('authed') }} />
+  }
+
+  if (authState === 'login') {
+    return <Login onLogin={() => setAuthState('authed')} />
   }
 
   return (
@@ -100,7 +128,7 @@ export function App() {
           <Route path="/outfits" element={<Outfits />} />
           <Route path="/tryon" element={<TryOn />} />
           <Route path="/jobs" element={<Jobs />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings" element={<Settings onLogout={() => setAuthState('login')} />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </div>

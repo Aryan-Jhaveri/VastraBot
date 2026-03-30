@@ -59,6 +59,11 @@ export const tryonResults = sqliteTable('tryon_results', {
   createdAt: integer('created_at').notNull(),
 })
 
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+})
+
 export const scheduledJobs = sqliteTable('scheduled_jobs', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),

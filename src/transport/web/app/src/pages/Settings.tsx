@@ -2,12 +2,22 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLocation } from '../hooks/useLocation'
 import { Button } from '../components/ui/Button'
+import { getToken, setToken, clearToken } from '../api/client'
 
-export function Settings() {
+export function Settings({ onLogout }: { onLogout: () => void }) {
   const navigate = useNavigate()
   const { location, geocode, clearLocation } = useLocation()
   const [cityInput, setCityInput] = useState(location?.name ?? '')
   const [geoLoading, setGeoLoading] = useState(false)
+
+  // Password change — hidden until user taps "Change Password"
+  const [showPwForm, setShowPwForm] = useState(false)
+  const [pwCurrent, setPwCurrent] = useState('')
+  const [pwNew, setPwNew] = useState('')
+  const [pwConfirm, setPwConfirm] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
+  const [pwError, setPwError] = useState<string | null>(null)
+  const [pwSuccess, setPwSuccess] = useState(false)
 
   async function handleUpdateCity(e: React.FormEvent) {
     e.preventDefault()
@@ -18,6 +28,46 @@ export function Settings() {
     } finally {
       setGeoLoading(false)
     }
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setPwError(null)
+    setPwSuccess(false)
+    if (pwNew !== pwConfirm) { setPwError('New passwords do not match'); return }
+    setPwLoading(true)
+    try {
+      const res = await fetch('/api/settings/password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ current: pwCurrent, newPassword: pwNew }),
+      })
+      const body = await res.json() as { token?: string; error?: string }
+      if (!res.ok) { setPwError(body.error ?? 'Failed to update password'); return }
+      setToken(body.token!)
+      // Re-auth via the standard login path to ensure the httpOnly cookie is refreshed
+      await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: body.token }),
+      })
+      setPwCurrent(''); setPwNew(''); setPwConfirm('')
+      setPwSuccess(true)
+      setShowPwForm(false)
+    } catch {
+      setPwError('Something went wrong')
+    } finally {
+      setPwLoading(false)
+    }
+  }
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {})
+    clearToken()
+    onLogout()
   }
 
   return (
@@ -57,6 +107,63 @@ export function Settings() {
         className="border-b border-[#f0f0f0] py-3 flex items-center justify-between w-full text-left hover:bg-[#f8f8f8] transition-colors"
       >
         <p className="text-sm font-medium">Scheduled Jobs</p>
+        <span className="text-[9px] font-mono text-[#888]">→</span>
+      </button>
+
+      {/* Security section */}
+      <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888] mt-6 mb-2 pb-1 border-b border-[#e0e0e0]">Security</p>
+
+      {/* Change password — collapsed by default */}
+      {!showPwForm ? (
+        <button
+          onClick={() => setShowPwForm(true)}
+          className="border-b border-[#f0f0f0] py-3 flex items-center justify-between w-full text-left hover:bg-[#f8f8f8] transition-colors"
+        >
+          <p className="text-sm font-medium">Change Password</p>
+          <span className="text-[9px] font-mono text-[#888]">→</span>
+        </button>
+      ) : (
+        <form onSubmit={handleChangePassword} className="py-3 flex flex-col gap-3 border-b border-[#f0f0f0]">
+          {pwError && (
+            <div className="border-2 border-[#111] bg-[#f0f0f0] px-3 py-2 text-[10px] font-mono uppercase tracking-[0.06em]">{pwError}</div>
+          )}
+          {pwSuccess && (
+            <div className="border-2 border-[#111] bg-[#111] text-white px-3 py-2 text-[10px] font-mono uppercase tracking-[0.06em]">Password updated</div>
+          )}
+          <div className="flex flex-col gap-1">
+            <label className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888]">Current Password</label>
+            <input type="password" value={pwCurrent} onChange={e => setPwCurrent(e.target.value)} required
+              className="border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888]">New Password</label>
+            <input type="password" value={pwNew} onChange={e => setPwNew(e.target.value)} required minLength={8}
+              className="border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888]">Confirm New Password</label>
+            <input type="password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} required minLength={8}
+              className="border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]" />
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" variant="secondary" loading={pwLoading}>Save</Button>
+            <button
+              type="button"
+              onClick={() => { setShowPwForm(false); setPwCurrent(''); setPwNew(''); setPwConfirm(''); setPwError(null) }}
+              className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] hover:text-[#111] px-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Log out */}
+      <button
+        onClick={handleLogout}
+        className="border-b border-[#f0f0f0] py-3 flex items-center justify-between w-full text-left hover:bg-[#f8f8f8] transition-colors"
+      >
+        <p className="text-sm font-medium">Log Out</p>
         <span className="text-[9px] font-mono text-[#888]">→</span>
       </button>
 

@@ -8,7 +8,10 @@ import { saveImageSquareCrop, deleteImage } from '../../../storage/images.js'
 import { updateOutfit as dbUpdateOutfit, getOutfit as dbGetOutfit } from '../../../db/queries.js'
 
 const router = Router()
-const upload = multer({ storage: multer.memoryStorage() })
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } })
+
+const isProd = process.env.NODE_ENV === 'production'
+const errMsg = (err: unknown) => isProd ? 'Internal server error' : String(err)
 
 // GET /api/outfits?hydrate=true
 router.get('/', async (req, res) => {
@@ -31,7 +34,7 @@ router.get('/', async (req, res) => {
 
     res.json(outfitList)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -64,7 +67,7 @@ router.get('/suggest', async (req, res) => {
 
     res.json({ weather, suggestions })
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -74,7 +77,7 @@ router.post('/', async (req, res) => {
     const outfit = await createOutfit(req.body)
     res.status(201).json(outfit)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -85,8 +88,8 @@ router.patch('/:id', async (req, res) => {
     res.json(outfit)
   } catch (err) {
     const msg = String(err)
-    if (msg.includes('not found')) return res.status(404).json({ error: msg })
-    res.status(500).json({ error: msg })
+    if (msg.includes('not found')) return res.status(404).json({ error: 'Outfit not found' })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -94,6 +97,7 @@ router.patch('/:id', async (req, res) => {
 router.post('/:id/cover', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image provided' })
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'File must be an image' })
     const outfitId = String(req.params.id)
     const base64 = req.file.buffer.toString('base64')
     const coverImageUri = await saveImageSquareCrop(base64, 'outfits')
@@ -101,7 +105,7 @@ router.post('/:id/cover', upload.single('image'), async (req, res) => {
     if (!outfit) return res.status(404).json({ error: 'Outfit not found' })
     res.json(outfit)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -116,7 +120,7 @@ router.delete('/:id/cover', async (req, res) => {
     const outfit = dbUpdateOutfit(req.params.id, { coverImageUri: null })
     res.json(outfit)
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -126,7 +130,7 @@ router.delete('/:id', async (req, res) => {
     await deleteOutfit(req.params.id)
     res.status(204).send()
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -137,8 +141,8 @@ router.post('/:id/worn', async (req, res) => {
     res.json(outfit)
   } catch (err) {
     const msg = String(err)
-    if (msg.includes('not found')) return res.status(404).json({ error: msg })
-    res.status(500).json({ error: msg })
+    if (msg.includes('not found')) return res.status(404).json({ error: 'Outfit not found' })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 

@@ -5,14 +5,17 @@ import { imageToBase64, deleteImage, saveImageFromBase64 } from '../../../storag
 import { generateTryOn } from '../../../ai/tryon.js'
 
 const router = Router()
-const upload = multer({ storage: multer.memoryStorage() })
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } })
+
+const isProd = process.env.NODE_ENV === 'production'
+const errMsg = (err: unknown) => isProd ? 'Internal server error' : String(err)
 
 // GET /api/tryon — fetch try-on history
 router.get('/', async (_req, res) => {
   try {
     res.json(queries.getTryonResults())
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -26,7 +29,7 @@ router.delete('/:id', async (req, res) => {
     queries.deleteTryonResult(req.params.id)
     res.status(204).end()
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -34,11 +37,12 @@ router.delete('/:id', async (req, res) => {
 router.post('/garments', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'image file is required' })
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'File must be an image' })
     const base64 = req.file.buffer.toString('base64')
     const imageUri = await saveImageFromBase64(base64, 'garments')
     res.status(201).json({ imageUri })
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 
@@ -88,7 +92,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ resultImageUri, tryonId: result.id })
   } catch (err) {
-    res.status(500).json({ error: String(err) })
+    res.status(500).json({ error: errMsg(err) })
   }
 })
 

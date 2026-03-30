@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { Request, Response, NextFunction } from 'express'
 
+// Mock DB queries so middleware doesn't need a real SQLite connection
+vi.mock('../../../src/db/queries.js', () => ({
+  getSetting: vi.fn().mockReturnValue(null), // no DB password; falls back to env var
+  setSetting: vi.fn(),
+}))
+
 // Must set env before importing the module under test
 const originalEnv = process.env
 
