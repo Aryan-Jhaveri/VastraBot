@@ -89,12 +89,21 @@ cp .env.example .env
 ### Run (development)
 
 ```bash
-# Terminal 1 — web dashboard + API
+# Terminal 1 — web dashboard + API (Express :3000 + Vite :5173)
 npm run web:dev
 
-# Terminal 2 — Telegram bot
+# Terminal 2 — expose the web app over HTTPS for the Telegram mini-app button
+#   Telegram requires HTTPS; localhost won't work.
+#   Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+cloudflared tunnel --url http://localhost:3000
+#   Copy the printed URL (e.g. https://abc-xyz.trycloudflare.com)
+#   Set it in .env:  WEB_APP_URL=https://abc-xyz.trycloudflare.com
+
+# Terminal 3 — Telegram bot (restart this whenever the tunnel URL changes)
 npm run telegram
 ```
+
+> **Tunnel URL changes on every restart.** Cloudflare Quick Tunnels assign a new random URL each session. Each time you restart the tunnel you must update `WEB_APP_URL` in `.env` and restart the bot. For a stable dev URL, set up a [named Cloudflare tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/) (free, one-time setup) and the URL never changes.
 
 ### Run (production)
 
