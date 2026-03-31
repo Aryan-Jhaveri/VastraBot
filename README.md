@@ -1,21 +1,28 @@
 # 👔 VastraBot
 
 [![Status](https://img.shields.io/badge/Status-Beta-orange.svg)]()
-[![Powered by Gemini](https://img.shields.io/badge/AI-Gemini%202.0-blue.svg)](https://deepmind.google/technologies/gemini/)
-[![Tech](https://img.shields.io/badge/Tech-React%20%2B%20Vite%20%2B%20Express-black.svg)]()
+[![Powered by Gemini](https://img.shields.io/badge/AI-Gemini%203.0-blue.svg)](https://deepmind.google/technologies/gemini/)
+[![Tech](https://img.shields.io/badge/Tech-Nano%20Banana%20%2B%20React-yellow.svg)]()
 
-**VastraBot** is a high-performance, AI-orchestrated wardrobe management system. Unlike generic fashion apps, VastraBot acts as a private, self-hosted intelligent layer for your closet—turning a simple photo gallery into a dynamic, weather-aware style consultant.
+**VastraBot** is a high-performance, AI-orchestrated wardrobe management system. Powered by the cutting-edge **Gemini 3.0** engine and the **Nano Banana** framework, VastraBot acts as a private, self-hosted intelligent layer for your closet—turning a simple photo gallery into a dynamic, weather-aware style consultant.
+
+### 🌟 Why VastraBot? (Unique Selling Points)
+
+- **🧠 Next-Gen Intelligence:** Utilizes **Gemini 3.0**'s multi-modal capabilities for unparalleled wardrobe understanding and photorealistic virtual try-ons.
+- **🍌 Powered by Nano Banana:** Leverages the **Nano Banana** stack for lightning-fast processing and seamless AI orchestration.
+- **🎮 Manual Control:** A robust web dashboard that gives you full manual control over your wardrobe, items, and outfits, perfectly balancing AI automation with human precision.
+- **🛡️ Radical Privacy:** Your wardrobe is personal. VastraBot is entirely self-hosted. Your images, your location data, and your style preferences never leave your server.
+- **🌦️ Predictive Styling:** Evaluates your closet against real-time Open-Meteo forecasts, ensuring you're always styled perfectly for the weather.
 
 ---
 
 ## ✨ Key Features
 
-- **📸 AI-Powered Add:** Send a photo of a garment; Gemini automatically detects the category, subcategory, primary color, material, and season.
-- **🏷️ Care Label Scanning:** OCR-scan your clothing tags to extract brand, size, and specific washing instructions automatically.
-- **🌤️ Weather-Aware Suggestions:** Get AI-generated outfit recommendations tailored to the current temperature and conditions (Rain/Snow/Sun).
-- **🎭 Virtual Try-On:** Generate photorealistic previews of yourself wearing items from your closet using Gemini's image generation models.
-- **🤖 Daily Job Scheduler:** Set up "Daily Outfits" to be sent to your Telegram at a specific time (e.g., 8:00 AM) based on the day's forecast.
-- **🔒 Privacy First:** All data is stored locally in a SQLite database. No accounts, no tracking, no subscriptions.
+- **📸 Gemini 3.0 Vision:** Send a photo; Gemini 3.0 instantly categorizes every detail, from material to season.
+- **🖥️ Manual Management:** Use the powerful web frontend to manually organize your items, edit tags, and curate your personal collection.
+- **🎭 Virtual Try-On:** See yourself in any outfit combination using state-of-the-art image generation.
+- **🌤️ Weather-Aware Suggestions:** AI-generated recommendations tailored to live local weather data.
+- **🤖 Nano Banana Orchestration:** High-speed job scheduling for daily outfit notifications via Telegram.
 
 ---
 
@@ -25,7 +32,7 @@ The project is built as a **transport-agnostic core**. This means the database, 
 
 ```text
 src/
-├── ai/          # Gemini 2.0 Integration (Vision, Text, Image Gen)
+├── ai/          # Gemini 3.0 & Nano Banana Integration
 ├── db/          # SQLite + Drizzle ORM (Schema & Queries)
 ├── jobs/        # Cron-based Job Scheduler (Daily Push Notifications)
 ├── tools/       # Core Business Logic (Wardrobe & Outfit Management)
@@ -105,10 +112,9 @@ Interact with your closet on the go:
 
 | Component | Technology |
 |---|---|
-| **Language** | TypeScript |
+| **Core Engine** | Gemini 3.0 |
+| **Orchestration** | Nano Banana |
 | **Database** | Better-SQLite3 + Drizzle ORM |
-| **AI Vision/Text** | Gemini 2.0 Flash |
-| **AI Image Gen** | Gemini 2.0 Flash (Image Preview) |
 | **Frontend** | React + Vite + Tailwind CSS v4 |
 | **Backend** | Express.js |
 | **Bot Framework** | GrammY |
