@@ -90,7 +90,7 @@ async function main() {
   })
 
   bot.command('tryon', async ctx => {
-    await guardEnter(ctx, 'tryon')
+    await ctx.reply('Virtual try-on is available on the web app. Tap "Open Closet" below or send /start.')
   })
 
   // ── Photo messages → addItem conversation ─────────────────────────────────
@@ -143,7 +143,7 @@ async function main() {
 
   // ── Mini App menu button ──────────────────────────────────────────────────────
 
-  const webAppUrl = process.env.WEB_APP_URL
+  const webAppUrl = process.env.WEB_APP_URL ?? process.env.RENDER_EXTERNAL_URL
   if (webAppUrl) {
     await bot.api.setChatMenuButton({
       menu_button: { type: 'web_app', text: 'Open Closet', web_app: { url: webAppUrl } },

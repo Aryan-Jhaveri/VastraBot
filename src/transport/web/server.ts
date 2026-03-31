@@ -75,7 +75,7 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
 }
 
 const app = express()
-const PORT = parseInt(process.env.WEB_PORT ?? '3000', 10)
+const PORT = parseInt(process.env.PORT ?? process.env.WEB_PORT ?? '3000', 10)
 const isDev = process.env.NODE_ENV !== 'production'
 
 

@@ -1,121 +1,172 @@
-# VastraBot
+# My Closet
 
-[![Status](https://img.shields.io/badge/Status-Beta-orange.svg)]()
-[![Powered by Gemini](https://img.shields.io/badge/AI-Gemini%203.0-blue.svg)](https://deepmind.google/technologies/gemini/)
-[![Tech](https://img.shields.io/badge/Tech-Nano%20Banana%20%2B%20React-yellow.svg)]()
-
-![My Closet](assets/README_banner.png) 
-
-**VastraBot** is a high-performance, AI-orchestrated wardrobe management system. Powered by the cutting-edge **Gemini 3.0** engine and the **Nano Banana** framework, VastraBot acts as a private, self-hosted intelligent layer for your closet—turning a simple photo gallery into a dynamic, weather-aware style consultant.
+A self-hosted, AI-powered wardrobe management system. Photograph clothes, let Gemini categorize them, get weather-aware outfit suggestions, and manage everything from a web dashboard or Telegram bot.
 
 ---
 
-## ✨ Key Features
+## Features
 
-- **📸 Gemini 3.0 Vision:** Send a photo; Gemini 3.0 instantly categorizes every detail, from material to season.
-- **🖥️ Manual Management:** Use the powerful web frontend to manually organize your items, edit tags, and curate your personal collection.
-- **🎭 Virtual Try-On:** See yourself in any outfit combination using state-of-the-art image generation.
-- **🌤️ Weather-Aware Suggestions:** AI-generated recommendations tailored to live local weather data.
-- **🤖 Nano Banana Orchestration:** High-speed job scheduling for daily outfit notifications via Telegram.
+- **AI item categorization** — send a photo, Gemini extracts category, color, brand, material, care instructions
+- **Weather-aware outfit suggestions** — pulls live weather via Open-Meteo and suggests outfits from your actual wardrobe
+- **Virtual try-on** — upload a reference photo, select items, Gemini generates a try-on image
+- **Care label scanning** — photograph a tag, AI extracts material and washing instructions
+- **Scheduled notifications** — daily outfit reminders sent to Telegram on a cron schedule
+- **Web dashboard** — browse, filter, edit, and manage outfits in a React UI
+- **Telegram bot** — add items by sending photos, ask Gemini questions about your wardrobe, get outfit suggestions
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
-The project is built as a **transport-agnostic core**. This means the database, AI logic, and tools are decoupled from the interface.
+Transport-agnostic core: the database, AI, and tool logic are fully decoupled from the interface layer.
 
-```text
+```
 src/
-├── ai/          # Gemini 3.0 & Nano Banana Integration
-├── db/          # SQLite + Drizzle ORM (Schema & Queries)
-├── jobs/        # Cron-based Job Scheduler (Daily Push Notifications)
-├── tools/       # Core Business Logic (Wardrobe & Outfit Management)
-└── transport/   # Interfaces
-    ├── web/      # React + Vite + Tailwind (V4) Dashboard
-    └── telegram/ # Grammy-powered Bot Interface
+├── ai/           # Gemini client, categorize, suggest, tryon, scanTag
+├── db/           # SQLite + Drizzle ORM
+├── jobs/         # Croner-based scheduler (daily outfit push notifications)
+├── storage/      # Image compression via Sharp
+├── tools/        # Core business logic (items, outfits, weather)
+├── weather/      # Open-Meteo fetch + WMO code mapping
+└── transport/
+    ├── web/      # Express API + React/Vite/Tailwind SPA
+    └── telegram/ # GrammY bot with Gemini chat agent
 ```
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. Prerequisites
-- **Node.js 20+**
-- **Gemini API Key** ([Get one for free here](https://aistudio.google.com/app/apikey))
-- **Telegram Bot Token** ([From @BotFather](https://t.me/BotFather))
+### Prerequisites
+- Node.js 20+
+- [Gemini API key](https://aistudio.google.com/app/apikey) (free tier works)
+- Telegram Bot token from [@BotFather](https://t.me/BotFather)
 
-### 2. Installation
+### Install
+
 ```bash
 git clone https://github.com/your-username/closet.git
 cd closet
 npm install
+cd src/transport/web/app && npm install && cd ../../../..
 ```
 
-### 3. Configuration
-Copy the example environment file and fill in your keys:
+### Configure
+
 ```bash
 cp .env.example .env
 ```
-Key variables:
-- `GEMINI_API_KEY`: Your Google AI Studio key.
-- `TELEGRAM_BOT_TOKEN`: Your bot's token.
-- `WEB_AUTH_PASSWORD`: A strong password to protect your web dashboard.
 
-### 4. Password Recovery
-Since VastraBot is self-hosted and privacy-focused, there is no "Forgot Password" email service. If you lose your password, you can reset it by deleting the stored setting directly from the database:
+| Variable | Required | Description |
+|---|---|---|
+| `GEMINI_API_KEY` | Yes | Google AI Studio key |
+| `TELEGRAM_BOT_TOKEN` | Yes (bot) | From @BotFather |
+| `TELEGRAM_ALLOWED_USER_ID` | Yes (bot) | Your Telegram user ID — blocks strangers |
+| `WEB_AUTH_PASSWORD` | Yes (web) | Password for the web dashboard |
+| `WEB_APP_URL` | Dev only | URL of the web app for the Telegram mini-app button |
+
+### Build the frontend
 
 ```bash
-# Locate your database (defaults to ~/.closet/closet.db)
-sqlite3 ~/.closet/closet.db "DELETE FROM settings WHERE key = 'password';"
+npm run web:build
 ```
 
-After running this, restart the app. It will trigger the **First Run** setup, allowing you to create a new password.
+### Run (development)
 
-### 5. Running the App
-**Start the Web Dashboard (Dev):**
 ```bash
+# Web dashboard + API (Express :3000 + Vite :5173 with proxy)
 npm run web:dev
-```
-**Start the Telegram Bot:**
-```bash
+
+# Telegram bot (separate terminal)
 npm run telegram
 ```
 
----
+### Run (production — both in one process)
 
-## 📱 Interface Options
-
-### Web Dashboard
-A modern, neobrutalist interface built with **React**, **Vite**, and **Tailwind CSS**.
-- **Closet:** Browse and filter your wardrobe by category or tag.
-- **Outfits:** Create and save manual or AI-suggested combinations.
-- **Try On:** Upload a reference photo and see how items look on you.
-- **Settings:** Manage your location for weather lookups and change your password.
-
-### Telegram Bot
-Interact with your closet on the go:
-- **Send a photo:** Adds an item instantly.
-- `/outfit`: Get weather-based suggestions.
-- `/tryon`: Start a virtual try-on session.
-- `/weather`: Check current conditions.
-- `/jobs`: Schedule daily morning outfit notifications.
+```bash
+npm start
+```
 
 ---
 
-## 🛠️ Tech Stack
+## Deploying to Render
 
-| Component | Technology |
+1. Push this repo to GitHub
+2. Create a new **Web Service** on Render, connected to the repo
+3. Set the **Start Command** to `npm start`
+4. Add environment variables in the Render dashboard:
+   - `GEMINI_API_KEY`
+   - `TELEGRAM_BOT_TOKEN`
+   - `TELEGRAM_ALLOWED_USER_ID`
+   - `WEB_AUTH_PASSWORD`
+   - `NODE_ENV=production`
+5. Render automatically sets `PORT` and `RENDER_EXTERNAL_URL` — no `WEB_APP_URL` needed
+
+The `npm start` command (`src/combined.ts`) starts the Express server and Telegram bot in the same process. The Telegram mini-app button automatically uses `RENDER_EXTERNAL_URL` as the web app URL.
+
+**Before first deploy:** run `npm run web:build` locally and commit the `src/transport/web/app/dist/` folder, or add a Render build command: `npm run web:build`.
+
+---
+
+## Telegram Bot
+
+Send `/start` to see available commands.
+
+| Trigger | What happens |
 |---|---|
-| **Core Engine** | Gemini 3.0 |
-| **Orchestration** | Nano Banana |
-| **Database** | Better-SQLite3 + Drizzle ORM |
-| **Frontend** | React + Vite + Tailwind CSS v4 |
-| **Backend** | Express.js |
-| **Bot Framework** | GrammY |
-| **Image Processing** | Sharp |
+| Send a photo | AI categorizes it and adds to your closet |
+| Any text | Gemini agent answers — can query your wardrobe, suggest outfits, check weather |
+| `/outfit` | Fetches weather → AI suggests outfits from your closet |
+| `/weather` | Shows current conditions at your saved location |
+| `/worn <id>` | Marks an item as worn today |
+| `/add` | Prompts for a photo to add |
+| `/myphoto` | Saves a reference photo for virtual try-on |
+| `/cancel` | Exits any active flow |
+
+Virtual try-on is available on the **web dashboard** (not the bot).
 
 ---
 
-## 📜 License
+## Web Dashboard
 
-MIT. This is a personal project—feel free to fork it, break it, and make it your own.
+| Page | Description |
+|---|---|
+| **Home** | Weather card + AI outfit suggestions (manual trigger) |
+| **Closet** | Browse and filter all items; edit details, scan care labels |
+| **Outfits** | Saved outfits grid; create manually or from AI suggestions |
+| **Try On** | Upload reference photo, pick items, generate try-on image |
+| **Jobs** | Schedule daily outfit reminders via Telegram |
+| **Settings** | Location, password, Telegram chat ID |
+
+---
+
+## Password Recovery
+
+This is self-hosted — there is no "forgot password" flow. To reset:
+
+```bash
+sqlite3 ~/.closet/closet.db "DELETE FROM settings WHERE key = 'password';"
+```
+
+Restart the app. It will enter first-run setup and prompt for a new password.
+
+---
+
+## Tech Stack
+
+| Component | Package |
+|---|---|
+| AI | `@google/genai` (Gemini Flash) |
+| Database | `better-sqlite3` + `drizzle-orm` |
+| Image processing | `sharp` |
+| Web API | `express` v5 |
+| Frontend | Vite + React 18 + Tailwind v4 |
+| Bot | `grammy` + `@grammyjs/conversations` |
+| Scheduler | `croner` |
+| Testing | `vitest` |
+
+---
+
+## License
+
+MIT. Self-hosted, no third-party data sharing beyond Gemini API calls.
