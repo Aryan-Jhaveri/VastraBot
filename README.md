@@ -1,131 +1,119 @@
-# My Closet
+# 👔 VastraBot
 
-A personal wardrobe management system. Photograph your clothes, let AI categorize them, get outfit suggestions based on today's weather, and try on items virtually.
+[![Status](https://img.shields.io/badge/Status-Beta-orange.svg)]()
+[![Powered by Gemini](https://img.shields.io/badge/AI-Gemini%202.0-blue.svg)](https://deepmind.google/technologies/gemini/)
+[![Tech](https://img.shields.io/badge/Tech-React%20%2B%20Vite%20%2B%20Express-black.svg)]()
 
-## How it works
+**VastraBot** is a high-performance, AI-orchestrated wardrobe management system. Unlike generic fashion apps, VastraBot acts as a private, self-hosted intelligent layer for your closet—turning a simple photo gallery into a dynamic, weather-aware style consultant.
 
-1. Send a photo → Gemini AI categorizes it (type, color, brand, season, tags)
-2. Confirm or edit the AI's guess → item saved to your closet
-3. Ask for outfit suggestions → fetches live weather → AI picks matching items
-4. Try on an outfit virtually → Gemini generates a photorealistic image of you wearing the items
+### 🌟 Why VastraBot? (Unique Selling Points)
 
-## Architecture
+- **🧠 Multi-Modal Intelligence:** Harnesses Gemini 2.0's vision and image generation capabilities to not only understand what's in your closet but to show you how it looks on *you* through photorealistic virtual try-ons.
+- **⛓️ Transport-Agnostic Core:** Built with a modular "Core-as-a-Service" architecture. The intelligence lives in the core tools, allowing the same wardrobe logic to power a web dashboard, a Telegram bot, an MCP server, or a mobile app simultaneously.
+- **🛡️ Radical Privacy:** Your wardrobe is personal. VastraBot is entirely self-hosted. Your images, your location data, and your style preferences never leave your server.
+- **🌦️ Predictive Styling:** It doesn't just suggest outfits; it evaluates them against real-time Open-Meteo forecasts, ensuring you're never caught under-dressed in a storm or over-layered in the heat.
+- **⚡ Neobrutalist Experience:** A bold, high-contrast web interface that prioritizes speed and clarity, moving away from cluttered "lifestyle" app designs toward a focused, functional tool.
 
-Transport-agnostic core (database + tools + AI) that can be wrapped by any interface. The schema and tool functions are the product — the transport is just wiring.
+---
 
-```
+## ✨ Key Features
+
+- **📸 AI-Powered Add:** Send a photo of a garment; Gemini automatically detects the category, subcategory, primary color, material, and season.
+- **🏷️ Care Label Scanning:** OCR-scan your clothing tags to extract brand, size, and specific washing instructions automatically.
+- **🌤️ Weather-Aware Suggestions:** Get AI-generated outfit recommendations tailored to the current temperature and conditions (Rain/Snow/Sun).
+- **🎭 Virtual Try-On:** Generate photorealistic previews of yourself wearing items from your closet using Gemini's image generation models.
+- **🤖 Daily Job Scheduler:** Set up "Daily Outfits" to be sent to your Telegram at a specific time (e.g., 8:00 AM) based on the day's forecast.
+- **🔒 Privacy First:** All data is stored locally in a SQLite database. No accounts, no tracking, no subscriptions.
+
+---
+
+## 🏗️ Architecture
+
+The project is built as a **transport-agnostic core**. This means the database, AI logic, and tools are decoupled from the interface.
+
+```text
 src/
-├── ai/          Gemini integration: categorize, scanTag, suggest, tryon
-├── constants/   Category and color definitions
-├── db/          SQLite schema (Drizzle ORM), migrations, queries
-├── storage/     Image compression and storage (sharp)
-├── tools/       Core tool layer: items, outfits, photos, weather
-├── types/       Zod schemas + TypeScript types
-├── weather/     Open-Meteo fetch, WMO code mapping
-└── transport/
-    └── telegram/ Telegram bot (grammY)
+├── ai/          # Gemini 2.0 Integration (Vision, Text, Image Gen)
+├── db/          # SQLite + Drizzle ORM (Schema & Queries)
+├── jobs/        # Cron-based Job Scheduler (Daily Push Notifications)
+├── tools/       # Core Business Logic (Wardrobe & Outfit Management)
+└── transport/   # Interfaces
+    ├── web/      # React + Vite + Tailwind (V4) Dashboard
+    └── telegram/ # Grammy-powered Bot Interface
 ```
 
-## Setup
+---
 
-**Prerequisites:** Node.js 20+
+## 🚀 Quick Start
 
+### 1. Prerequisites
+- **Node.js 20+**
+- **Gemini API Key** ([Get one for free here](https://aistudio.google.com/app/apikey))
+- **Telegram Bot Token** ([From @BotFather](https://t.me/BotFather))
+
+### 2. Installation
 ```bash
+git clone https://github.com/your-username/closet.git
+cd closet
 npm install
 ```
 
-**Environment variables** — copy and fill in:
-
+### 3. Configuration
+Copy the example environment file and fill in your keys:
 ```bash
 cp .env.example .env
 ```
+Key variables:
+- `GEMINI_API_KEY`: Your Google AI Studio key.
+- `TELEGRAM_BOT_TOKEN`: Your bot's token.
+- `WEB_AUTH_PASSWORD`: A strong password to protect your web dashboard.
 
-| Variable | Description |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | From [@BotFather](https://t.me/BotFather) |
-| `TELEGRAM_ALLOWED_USER_ID` | Your Telegram user ID (get it from [@userinfobot](https://t.me/userinfobot)) |
-| `GEMINI_API_KEY` | From [Google AI Studio](https://aistudio.google.com/app/apikey) |
-| `CLOSET_DATA_DIR` | Data directory (default: `~/.closet/`) |
-
-## Running
-
-**Telegram bot:**
+### 4. Running the App
+**Start the Web Dashboard (Dev):**
+```bash
+npm run web:dev
+```
+**Start the Telegram Bot:**
 ```bash
 npm run telegram
 ```
 
-**Run tests:**
-```bash
-npm test
-```
+---
 
-**Generate/apply DB migrations:**
-```bash
-npm run db:generate
-npm run db:migrate
-```
+## 📱 Interface Options
 
-# Run tunnel pointing at your Express server
-  cloudflared tunnel --url http://localhost:300
+### Web Dashboard
+A modern, neobrutalist interface built with **React**, **Vite**, and **Tailwind CSS**.
+- **Closet:** Browse and filter your wardrobe by category or tag.
+- **Outfits:** Create and save manual or AI-suggested combinations.
+- **Try On:** Upload a reference photo and see how items look on you.
+- **Settings:** Manage your location for weather lookups and change your password.
 
+### Telegram Bot
+Interact with your closet on the go:
+- **Send a photo:** Adds an item instantly.
+- `/outfit`: Get weather-based suggestions.
+- `/tryon`: Start a virtual try-on session.
+- `/weather`: Check current conditions.
+- `/jobs`: Schedule daily morning outfit notifications.
 
-## Add item flow
+---
 
-```
-Send photo
-  → "Analyzing..." (immediate feedback)
-  → Gemini categorizes: type, color, brand, season, occasion, tags
-  → Show result + [✓ Save] [✎ Edit] [✗ Cancel]
-  → Edit: pick field to change → Category / Color / Brand / Size
-  → Save: compress image + write to DB
-  → Optional: [📷 Scan care label?] → reads washing instructions from tag photo
-```
+## 🛠️ Tech Stack
 
-## Location
-
-`/weather` and `/outfit` ask for your location once and remember it for the session. On mobile, tap the GPS button. On desktop, type a city name (e.g. `Toronto`). The bot geocodes it using Open-Meteo and saves the coordinates.
-
-## Telegram Commands
-
-| Command | Action |
+| Component | Technology |
 |---|---|
-| Send a photo | Add item to closet (AI auto-categorizes) |
-| `/add` | Prompt for photo → add item |
-| `/closet` | Browse wardrobe with category filter + pagination |
-| `/outfit` | Weather-based AI outfit suggestions |
-| `/tryon` | Virtual try-on with Gemini image generation |
-| `/weather` | Current conditions card |
-| `/worn <id>` | Mark an item as worn |
-| `/myphoto` | Set your reference photo for try-on |
-| `/start` | Welcome message + command list |
+| **Language** | TypeScript |
+| **Database** | Better-SQLite3 + Drizzle ORM |
+| **AI Vision/Text** | Gemini 2.0 Flash |
+| **AI Image Gen** | Gemini 2.0 Flash (Image Preview) |
+| **Frontend** | React + Vite + Tailwind CSS v4 |
+| **Backend** | Express.js |
+| **Bot Framework** | GrammY |
+| **Image Processing** | Sharp |
 
-## Tech Stack
+---
 
-| Component | Package |
-|---|---|
-| Database | `better-sqlite3` + `drizzle-orm` |
-| AI (vision) | `@google/genai` — `gemini-flash-latest` |
-| AI (image gen) | `@google/genai` — `gemini-3.1-flash-image-preview` |
-| Image compression | `sharp` |
-| Telegram bot | `grammy` |
-| Multi-step flows | `@grammyjs/conversations` |
-| Photo download | `@grammyjs/files` |
-| Validation | `zod` |
-| IDs | `nanoid` |
-| Testing | `vitest` |
+## 📜 License
 
-## Data
-
-All data is stored locally in `~/.closet/` (or `$CLOSET_DATA_DIR`):
-
-```
-~/.closet/
-├── closet.db
-└── images/
-    ├── items/
-    ├── tags/
-    ├── tryon/
-    └── user/
-```
-
-Image paths in the database are stored as relative paths (`images/items/abc123.jpg`) so the data directory is portable.
+MIT. This is a personal project—feel free to fork it, break it, and make it your own.

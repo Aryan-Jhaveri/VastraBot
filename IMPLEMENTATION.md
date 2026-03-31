@@ -1,36 +1,65 @@
 # Ideas 
-    - [ ] Closet:
-        - The type tags on the top need to update, for example theres a sneaker item but the tags don't reflect it, it needs to be automatic
-        - Uploaded images need to cropped and unified to fit properly, despite whatever aspect ratio they were uploaded in
-        - Add multi select for tags
+   - Production:
+       - [ ] Address how to share and deploy the project for others to use? Will they subscribe to the bot and use it as a closet?
 
+    - DB:
+        - [ ] : Research data cleaning pipeline where, an added garment image gets appropriately segmented before being saved.
 
+    - Ooutfits:
+        - Remove carenotes for in outfits page <div><p class="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Care Notes</p><div class="mb-2"><p class="text-[8px] font-mono text-[#888] uppercase tracking-[0.04em] mb-0.5 capitalize">t-shirt</p><ul class="space-y-0.5"><li class="text-[10px] font-mono text-[#555]">— Wash at 40°C</li><li class="text-[10px] font-mono text-[#555]">— Do not bleach</li><li class="text-[10px] font-mono text-[#555]">— Tumble dry medium heat</li><li class="text-[10px] font-mono text-[#555]">— Medium Iron avoiding print</li><li class="text-[10px] font-mono text-[#555]">— Do not dry clean</li><li class="text-[10px] font-mono text-[#555]">— Wash with similar colours</li></ul></div></div>
 
-    - [ ] Outfits page needs a schedule feature, where a selected outfit gets scheduled to be sent as reminder in telegram, a cron job automation type preset feature with what we have in jobs. We also need jobs to show such scheduled jobs.
+        - 
 
+    - [ ] Security:
+        - Check security to see if the API leaks in front end, check security research.
 
+    - [x] Cron Jobs:
+        - [ ] One time edit menu doesn't include time selector, only date selector
+        - Currently cron jobs dont send messages, why is that?
+        - need to add the ability to delete jobs, Cannot delete created cron jobs at the moment
+        - Need the ability/plan to also set a cron job to remind for a saved outfit instead of asking for gemini suggested generated one. A simple cron implementation to send a message for an outift
+        - [ ] Outfits page needs a schedule feature, where a selected outfit gets scheduled to be sent as reminder in telegram, a cron job automation type preset feature with what we have in jobs. We also need jobs to show such scheduled jobs.
 
-    
-    - [ ] Items page needs to be like closet really, with the ability to filter by tags, same for the otfits page.
-    - [ ] try on page doesn't show upload page. Only Items & Outfits page.
-
-    - [ ] DB: Need the ability for data labels and care labels ocr text to be added to the outfit field, and shown and be editable in outfit cards.
-    - [ ] Closet item edit page needs to ability to add and remove tags, and thoruoughly edit the item details where necessary. 
-    
-    - [x] Features — Outfits page (Step 9 below)
-        - Save outfit, create folders/moods page to save ideas and future references, add file references to original files so we dont have to rely on generated gemini images. Bundles of clothes can be saved together to either save or save a photo someone takes themselves. Maybe check reference projects for inspiration
-
-    - [x] : Cron Jobs (Step 8 + feature/cron-jobs ✅ DONE)
+    - [ ] Home:
+        - Break weather, and suggest button, with location and weather fetched and cached for current location by default on app start up, and suggest button simply running the suggestion on clicking suggest. 
 
     - [ ] : Front-end
+        - [ ] Research existing save button to add a download button to history of previou tryon images, clicking on save button doesn't start a download of file for me, why is that?
+        - [ ] Try On page needs to show the save image
         - [x] Home page vanishes when pages are switched. (sessionStorage cache in useOutfits)
         - [x] Restrict suggestion on trigger (manual Suggest/Refresh button only)
-        - [ ] Try On page needs to show the save image
         - [x] Try On page needs to have delete photo button
         - [x] Remove password functionality (removed from Settings)
         - [x] When a card is opened, the garment photo is not visible.
         - [x] To close a card, it a small cross in the corner. It'd be better to close a card when a background click happens.
         - [x] Try on image needs to be big enough to see. Need to figure out why and how having multiple try-on referenc image is wired  (should have max 4)
+
+
+    - [ ] Closet:
+        - [ ] page grid needs to be 3x4, with 3 items always for good design practise. 
+        - [ ]Uploaded images need to cropped and unified to fit properly, despite whatever aspect ratio they were uploaded in
+        - [ ] Add multi select for tags
+        - [x] The type tags on the top need to update, for example theres a sneaker item but the tags don't reflect it, it needs to be automatic
+
+    - [ ] Need to improve chat functionality in telegram chats. 
+        - [ ] Remove /closet
+        - prompts for /cancel when /tryon or /myphoto is triggered
+        - add /add to trigger "add item page" and quickly allow add items.
+        - [] : Edit the telegram open message to be compact.
+        - Work on maybe adding gemini api to messages the bot generates aswell
+        - [ ] Allow gemini agent to chat/respond to chat by tool calling
+            - What if we need to change the model api down the road?
+
+    - [x] Items page needs to be like closet really, with the ability to filter by tags, same for the otfits page.
+    - [x] try on page doesn't show upload page. Only Items & Outfits page.
+
+    - [x] DB: Need the ability for data labels and care labels ocr text to be added to the outfit field, and shown and be editable in outfit cards.
+    - [x] Closet item edit page needs to ability to add and remove tags, and thoruoughly edit the item details where necessary. 
+    
+    - [x] Features — Outfits page (Step 9 below)
+        - Save outfit, create folders/moods page to save ideas and future references, add file references to original files so we dont have to rely on generated gemini images. Bundles of clothes can be saved together to either save or save a photo someone takes themselves. Maybe check reference projects for inspiration
+
+    - [x] : Cron Jobs (Step 8 + feature/cron-jobs ✅ DONE)
 
 
     - [x] : Data Schema
@@ -40,20 +69,6 @@
 
     - [ ] : Material and information about material needs to be OCR'red specifically from the materials label if available on clothing.
  If the field is manually, edited or OCR'ed the schema needs to subtly mention or keep track of that, so theres a difference of hey this was the composition on label vs this is what the material feels like to me.
-
-    - [ ] : Research data cleaning pipeline where, an added garment image gets appropriately segmented before being saved.
-
-    - [ ] Need to improve chat functionality
-        - [ ] Allow gemini agent to chat/respond to chat by tool calling
-            - What if we need to change the model api down the road?
-
-    - [ ] Address how to share and deploy the project for others to use? Will they subscribe to the bot and use it as a closet?
-
-    - [] : Edit the telegram open message to be compact.
-            - Work on maybe adding gemini api to messages the bot generates aswell
-
-
-    - Check security to see if the API leaks in front end, check security research.
 
 ---
 
