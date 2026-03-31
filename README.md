@@ -6,14 +6,6 @@
 
 **VastraBot** is a high-performance, AI-orchestrated wardrobe management system. Powered by the cutting-edge **Gemini 3.0** engine and the **Nano Banana** framework, VastraBot acts as a private, self-hosted intelligent layer for your closet—turning a simple photo gallery into a dynamic, weather-aware style consultant.
 
-### 🌟 Why VastraBot? (Unique Selling Points)
-
-- **🧠 Next-Gen Intelligence:** Utilizes **Gemini 3.0**'s multi-modal capabilities for unparalleled wardrobe understanding and photorealistic virtual try-ons.
-- **🍌 Powered by Nano Banana:** Leverages the **Nano Banana** stack for lightning-fast processing and seamless AI orchestration.
-- **🎮 Manual Control:** A robust web dashboard that gives you full manual control over your wardrobe, items, and outfits, perfectly balancing AI automation with human precision.
-- **🛡️ Radical Privacy:** Your wardrobe is personal. VastraBot is entirely self-hosted. Your images, your location data, and your style preferences never leave your server.
-- **🌦️ Predictive Styling:** Evaluates your closet against real-time Open-Meteo forecasts, ensuring you're always styled perfectly for the weather.
-
 ---
 
 ## ✨ Key Features
