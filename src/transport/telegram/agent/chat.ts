@@ -11,7 +11,7 @@ const SYSTEM_PROMPT =
   `You are a concise wardrobe assistant for a personal clothing app called My Closet. ` +
   `You have access to the user's wardrobe via tools. Be brief. Use plain text, no markdown. ` +
   `If the user wants to add clothing, tell them to send a photo. ` +
-  `For virtual try-on, tell them to use /tryon. ` +
+  `To see all available commands, tell the user to send /start. ` +
   `Today's date: ${new Date().toDateString()}.`
 
 export async function runAgentTurn(
