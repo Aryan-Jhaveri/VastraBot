@@ -6,14 +6,6 @@
 
 **VastraBot** is a high-performance, AI-orchestrated wardrobe management system. Unlike generic fashion apps, VastraBot acts as a private, self-hosted intelligent layer for your closet—turning a simple photo gallery into a dynamic, weather-aware style consultant.
 
-### 🌟 Why VastraBot? (Unique Selling Points)
-
-- **🧠 Multi-Modal Intelligence:** Harnesses Gemini 2.0's vision and image generation capabilities to not only understand what's in your closet but to show you how it looks on *you* through photorealistic virtual try-ons.
-- **⛓️ Transport-Agnostic Core:** Built with a modular "Core-as-a-Service" architecture. The intelligence lives in the core tools, allowing the same wardrobe logic to power a web dashboard, a Telegram bot, an MCP server, or a mobile app simultaneously.
-- **🛡️ Radical Privacy:** Your wardrobe is personal. VastraBot is entirely self-hosted. Your images, your location data, and your style preferences never leave your server.
-- **🌦️ Predictive Styling:** It doesn't just suggest outfits; it evaluates them against real-time Open-Meteo forecasts, ensuring you're never caught under-dressed in a storm or over-layered in the heat.
-- **⚡ Neobrutalist Experience:** A bold, high-contrast web interface that prioritizes speed and clarity, moving away from cluttered "lifestyle" app designs toward a focused, functional tool.
-
 ---
 
 ## ✨ Key Features
@@ -68,7 +60,17 @@ Key variables:
 - `TELEGRAM_BOT_TOKEN`: Your bot's token.
 - `WEB_AUTH_PASSWORD`: A strong password to protect your web dashboard.
 
-### 4. Running the App
+### 4. Password Recovery
+Since VastraBot is self-hosted and privacy-focused, there is no "Forgot Password" email service. If you lose your password, you can reset it by deleting the stored setting directly from the database:
+
+```bash
+# Locate your database (defaults to ~/.closet/closet.db)
+sqlite3 ~/.closet/closet.db "DELETE FROM settings WHERE key = 'password';"
+```
+
+After running this, restart the app. It will trigger the **First Run** setup, allowing you to create a new password.
+
+### 5. Running the App
 **Start the Web Dashboard (Dev):**
 ```bash
 npm run web:dev
