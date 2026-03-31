@@ -4,7 +4,7 @@ import { createOutfit, listOutfits, deleteOutfit, markOutfitWorn, updateOutfit }
 import { listItems } from '../../../tools/items.js'
 import { getCurrentWeather } from '../../../tools/weather.js'
 import { suggestOutfits } from '../../../ai/suggest.js'
-import { saveImageSquareCrop, deleteImage } from '../../../storage/images.js'
+import { saveImageFromBase64, deleteImage } from '../../../storage/images.js'
 import { updateOutfit as dbUpdateOutfit, getOutfit as dbGetOutfit } from '../../../db/queries.js'
 
 const router = Router()
@@ -100,7 +100,7 @@ router.post('/:id/cover', upload.single('image'), async (req, res) => {
     if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'File must be an image' })
     const outfitId = String(req.params.id)
     const base64 = req.file.buffer.toString('base64')
-    const coverImageUri = await saveImageSquareCrop(base64, 'outfits')
+    const coverImageUri = await saveImageFromBase64(base64, 'outfits')
     const outfit = dbUpdateOutfit(outfitId, { coverImageUri })
     if (!outfit) return res.status(404).json({ error: 'Outfit not found' })
     res.json(outfit)

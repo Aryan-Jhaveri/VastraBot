@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { useSavedOutfits } from '../hooks/useSavedOutfits'
 import { SavedOutfitCard } from '../components/SavedOutfitCard'
 import { OutfitDetail } from '../modals/OutfitDetail'
-import { OutfitBuilder } from '../modals/OutfitBuilder'
 import { FilterBar } from '../components/FilterBar'
-import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import type { HydratedOutfit } from '../api/outfits'
 
@@ -17,7 +15,6 @@ export function Outfits() {
   const [selectedTag, setSelectedTag] = useState('')
   const [aiOnly, setAiOnly] = useState(false)
   const [detail, setDetail] = useState<HydratedOutfit | null>(null)
-  const [building, setBuilding] = useState(false)
 
   // Derive unique occasions from actual data
   const occasions = [...new Set(outfits.map(o => o.occasion).filter(Boolean) as string[])]
@@ -69,7 +66,6 @@ export function Outfits() {
     <div className="flex flex-col p-4 pb-24 gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-[22px] font-bold leading-none">Outfits.</h1>
-        <Button variant="secondary" onClick={() => setBuilding(true)}>+ New</Button>
       </div>
 
       <div className="flex flex-wrap items-end gap-2">
@@ -108,7 +104,7 @@ export function Outfits() {
             {outfits.length === 0 ? 'No saved outfits yet.' : 'No outfits matching your filters.'}
           </p>
           {outfits.length === 0 && (
-            <Button variant="secondary" onClick={() => setBuilding(true)}>Build your first outfit</Button>
+            <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em]">Go to Closet to create one.</p>
           )}
         </div>
       )}
@@ -133,12 +129,6 @@ export function Outfits() {
         />
       )}
 
-      {building && (
-        <OutfitBuilder
-          onClose={() => setBuilding(false)}
-          onCreated={refetch}
-        />
-      )}
     </div>
   )
 }

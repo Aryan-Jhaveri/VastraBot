@@ -1,8 +1,10 @@
-# 👔 VastraBot
+# VastraBot
 
 [![Status](https://img.shields.io/badge/Status-Beta-orange.svg)]()
 [![Powered by Gemini](https://img.shields.io/badge/AI-Gemini%203.0-blue.svg)](https://deepmind.google/technologies/gemini/)
 [![Tech](https://img.shields.io/badge/Tech-Nano%20Banana%20%2B%20React-yellow.svg)]()
+
+![My Closet](assets/README_banner.png) 
 
 **VastraBot** is a high-performance, AI-orchestrated wardrobe management system. Powered by the cutting-edge **Gemini 3.0** engine and the **Nano Banana** framework, VastraBot acts as a private, self-hosted intelligent layer for your closet—turning a simple photo gallery into a dynamic, weather-aware style consultant.
 

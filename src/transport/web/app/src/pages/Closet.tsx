@@ -6,6 +6,7 @@ import { FilterBar } from '../components/FilterBar'
 import { ChipToggle } from '../components/ui/ChipToggle'
 import { AddItem } from '../modals/AddItem'
 import { ItemDetail } from '../modals/ItemDetail'
+import { OutfitSaveModal } from '../modals/OutfitSaveModal'
 import { Spinner } from '../components/ui/Spinner'
 import type { Item } from '../api/items'
 
@@ -23,6 +24,11 @@ export function Closet() {
   const [page, setPage] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [selected, setSelected] = useState<Item | null>(null)
+
+  // Select mode
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showOutfitSave, setShowOutfitSave] = useState(false)
 
   const { items, total, loading, refetch } = useItems({
     category: category || undefined,
@@ -59,6 +65,11 @@ export function Closet() {
     [allItems],
   )
 
+  const selectedItems = useMemo(
+    () => allItems.filter(i => selectedIds.has(i.id)),
+    [allItems, selectedIds],
+  )
+
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   const filterValues = { color, season, occasion, brand }
@@ -82,6 +93,19 @@ export function Closet() {
     setPage(1)
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
   const filterConfigs = [
     ...(colors.length > 0 ? [{ key: 'color', label: 'Color', options: colors }] : []),
     { key: 'season', label: 'Season', options: SEASONS },
@@ -95,15 +119,74 @@ export function Closet() {
       <div className="flex items-end justify-between border-b-2 border-[#111] pb-2">
         <div>
           <h1 className="text-[22px] font-bold leading-none">Closet</h1>
-          <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] mt-0.5">{total} {total === 1 ? 'item' : 'items'}</p>
+          <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] mt-0.5">
+            {selectMode
+              ? (selectedIds.size > 0 ? `${selectedIds.size} selected` : 'select items')
+              : `${total} ${total === 1 ? 'item' : 'items'}`}
+          </p>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="bg-[#111] text-white border-2 border-[#111] px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:bg-[#333] transition-colors"
-        >
-          + Add
-        </button>
+        {selectMode ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowOutfitSave(true)}
+              disabled={selectedIds.size < 2}
+              className="bg-[#111] text-white border-2 border-[#111] px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] transition-colors disabled:opacity-30"
+            >
+              Create Outfit
+            </button>
+            <button
+              onClick={exitSelectMode}
+              className="border-2 border-[#111] px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:bg-[#f0f0f0] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectMode(true)}
+              className="border-2 border-[#111] px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:bg-[#f0f0f0] transition-colors"
+            >
+              Select
+            </button>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="bg-[#111] text-white border-2 border-[#111] px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:bg-[#333] transition-colors"
+            >
+              + Add
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Selected items carousel — only in select mode */}
+      {selectMode && (
+        <div className="border-2 border-[#111] p-2">
+          {selectedItems.length === 0 ? (
+            <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em]">
+              Tap items below to select
+            </p>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-0.5">
+              {selectedItems.map(item => (
+                <div key={item.id} className="relative shrink-0">
+                  <img
+                    src={`/${item.imageUri}`}
+                    alt={item.subcategory ?? item.category}
+                    className="w-14 h-14 object-cover border border-[#111]"
+                  />
+                  <button
+                    onClick={() => toggleSelect(item.id)}
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-[#111] text-white text-[8px] flex items-center justify-center leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <CategoryFilter categories={categories} value={category} onChange={handleCategoryChange} />
 
@@ -138,7 +221,13 @@ export function Closet() {
 
       <div className="grid grid-cols-3 gap-[3px]">
         {items.map(item => (
-          <ItemCard key={item.id} item={item} onClick={() => setSelected(item)} />
+          <ItemCard
+            key={item.id}
+            item={item}
+            selectable={selectMode}
+            selected={selectMode && selectedIds.has(item.id)}
+            onClick={() => selectMode ? toggleSelect(item.id) : setSelected(item)}
+          />
         ))}
       </div>
 
@@ -174,6 +263,17 @@ export function Closet() {
           item={selected}
           onClose={() => setSelected(null)}
           onChanged={() => { void refetch() }}
+        />
+      )}
+
+      {showOutfitSave && (
+        <OutfitSaveModal
+          items={selectedItems}
+          onClose={() => setShowOutfitSave(false)}
+          onSaved={() => {
+            setShowOutfitSave(false)
+            exitSelectMode()
+          }}
         />
       )}
     </div>
