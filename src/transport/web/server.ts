@@ -78,6 +78,10 @@ const app = express()
 const PORT = parseInt(process.env.PORT ?? process.env.WEB_PORT ?? '3000', 10)
 const isDev = process.env.NODE_ENV !== 'production'
 
+// Trust one proxy hop (cloudflared tunnel in dev, Render's load balancer in prod)
+// Required for express-rate-limit to correctly identify clients behind a reverse proxy
+app.set('trust proxy', 1)
+
 
 // Cookie parser (for image auth cookie)
 app.use(cookieParser())
