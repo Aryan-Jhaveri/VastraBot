@@ -19,6 +19,7 @@ src/transport/web/app/dist/
 .idea/
 
 # Research and References (as requested)
+.gitignore
 CLAUDE.md
 research/
 references/
