@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="assets/README_banner.png" alt="VastraBot — AI-Powered Wardrobe Management" width="100%" />
+  <a href="https://github.com/Aryan-Jhaveri/VastraBot">
+    <img src="assets/README_banner.png" alt="VastraBot — AI-Powered Wardrobe Management" width="100%" />
+  </a>
 </p>
 
 <p align="center">
@@ -9,10 +11,18 @@
   <a href="https://github.com/Aryan-Jhaveri/VastraBot/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-black?style=flat-square" alt="MIT License" />
   </a>
-  <img src="https://img.shields.io/badge/AI-Gemini%20Flash-black?style=flat-square&logo=google" alt="Gemini Flash" />
-  <img src="https://img.shields.io/badge/Bot-Telegram-black?style=flat-square&logo=telegram" alt="Telegram" />
-  <img src="https://img.shields.io/badge/Deploy-Render-black?style=flat-square&logo=render" alt="Render" />
-  <img src="https://img.shields.io/badge/Stack-TypeScript-black?style=flat-square&logo=typescript" alt="TypeScript" />
+  <a href="https://aistudio.google.com/app/apikey">
+    <img src="https://img.shields.io/badge/AI-Gemini%20Flash-black?style=flat-square&logo=google" alt="Gemini Flash" />
+  </a>
+  <a href="https://core.telegram.org/bots">
+    <img src="https://img.shields.io/badge/Bot-Telegram-black?style=flat-square&logo=telegram" alt="Telegram" />
+  </a>
+  <a href="https://render.com">
+    <img src="https://img.shields.io/badge/Deploy-Render-black?style=flat-square&logo=render" alt="Render" />
+  </a>
+  <a href="https://www.typescriptlang.org">
+    <img src="https://img.shields.io/badge/Stack-TypeScript-black?style=flat-square&logo=typescript" alt="TypeScript" />
+  </a>
 </p>
 
 <p align="center">
@@ -178,6 +188,16 @@ sqlite3 ~/.closet/closet.db "DELETE FROM settings WHERE key = 'password';"
 ```
 
 Restart the app and it will prompt for a new password on first load.
+
+---
+
+## Security
+
+VastraBot is built with privacy and self-hosting in mind. For a detailed security overview and to report vulnerabilities, please see our [SECURITY.md](./SECURITY.md).
+
+- **Strict User Locking:** Only the `TELEGRAM_ALLOWED_USER_ID` can interact with the bot.
+- **Password-Protected Web UI:** Access to the React dashboard requires a strong password.
+- **Local-First:** Your wardrobe data, photos, and settings remain on your own server or disk.
 
 ---
 
