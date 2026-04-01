@@ -1,6 +1,11 @@
 # Dependencies
 node_modules/
 src/transport/web/app/node_modules/
+.obsidian
+references/
+.IMPLEMENTATION.md.swp
+closet_bw_neobrutalist_mockup.html
+*.swp
 
 # Environment variables
 .env

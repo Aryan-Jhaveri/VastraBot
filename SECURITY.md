@@ -12,7 +12,7 @@ Only the latest version of VastraBot is supported for security updates.
 
 If you discover a security vulnerability within this project, please do not open a public issue. Instead, please report it via the following method:
 
-1.  **Email:** Send an email to [aryan.jhaveri@outlook.com](mailto:aryan.jhaveri@outlook.com).
+1.  **Email:** : Unfortunately the project isn't maintained on email, please write PR or message me on LinkedIn/Github`
 2.  **Details:** Include as much information as possible, including steps to reproduce the issue.
 3.  **Response:** You will receive an acknowledgment within 48 hours.
 
