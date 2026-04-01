@@ -15,12 +15,13 @@ const SEASONS = ['spring', 'summer', 'fall', 'winter', 'all']
 const OCCASIONS = ['casual', 'work', 'formal', 'outdoor', 'date']
 
 export function Closet() {
-  const [category, setCategory] = useState('')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [color, setColor] = useState('')
   const [season, setSeason] = useState('')
   const [occasion, setOccasion] = useState('')
   const [brand, setBrand] = useState('')
   const [tags, setTags] = useState<string[]>([])
+  const [tagsOpen, setTagsOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [selected, setSelected] = useState<Item | null>(null)
@@ -31,7 +32,7 @@ export function Closet() {
   const [showOutfitSave, setShowOutfitSave] = useState(false)
 
   const { items, total, loading, refetch } = useItems({
-    category: category || undefined,
+    categories: selectedCategories.length ? selectedCategories : undefined,
     color: color || undefined,
     season: season || undefined,
     occasion: occasion || undefined,
@@ -88,8 +89,8 @@ export function Closet() {
     setPage(1)
   }
 
-  function handleCategoryChange(cat: string) {
-    setCategory(cat)
+  function handleCategoryChange(cats: string[]) {
+    setSelectedCategories(cats)
     setPage(1)
   }
 
@@ -112,6 +113,9 @@ export function Closet() {
     { key: 'occasion', label: 'Occasion', options: OCCASIONS },
     ...(brands.length >= 2 ? [{ key: 'brand', label: 'Brand', options: brands }] : []),
   ]
+
+  // Keep tags panel open if tags are active
+  const tagsOpenEffective = tagsOpen || tags.length > 0
 
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
@@ -188,7 +192,7 @@ export function Closet() {
         </div>
       )}
 
-      <CategoryFilter categories={categories} value={category} onChange={handleCategoryChange} />
+      <CategoryFilter categories={categories} value={selectedCategories} onChange={handleCategoryChange} />
 
       {filterConfigs.length > 0 && (
         <FilterBar
@@ -202,8 +206,36 @@ export function Closet() {
 
       {allTags.length > 0 && (
         <div>
-          <p className="text-[8px] font-mono text-[#888] uppercase tracking-[0.1em] mb-1.5">Tags</p>
-          <ChipToggle options={allTags} selected={tags} onChange={(next) => { setTags(next); setPage(1) }} />
+          <button
+            type="button"
+            onClick={() => setTagsOpen(v => !v)}
+            className="flex items-center gap-1.5 text-[8px] font-bold font-mono uppercase tracking-[0.1em] text-[#888] hover:text-[#111] transition-colors mb-0"
+          >
+            Tags
+            {tags.length > 0 && (
+              <span className="px-1 py-0.5 bg-[#111] text-white text-[7px] leading-none">
+                {tags.length}
+              </span>
+            )}
+            <svg
+              width="8"
+              height="8"
+              viewBox="0 0 8 8"
+              fill="currentColor"
+              className={`transition-transform duration-200 ${tagsOpenEffective ? 'rotate-180' : ''}`}
+            >
+              <path d="M4 5.5L0.5 2h7L4 5.5z" />
+            </svg>
+          </button>
+          <div
+            className={`grid transition-all duration-200 ease-in-out ${
+              tagsOpenEffective ? 'grid-rows-[1fr] opacity-100 mt-1.5' : 'grid-rows-[0fr] opacity-0'
+            }`}
+          >
+            <div className="overflow-hidden">
+              <ChipToggle options={allTags} selected={tags} onChange={(next) => { setTags(next); setPage(1) }} />
+            </div>
+          </div>
         </div>
       )}
 
@@ -215,7 +247,9 @@ export function Closet() {
 
       {!loading && items.length === 0 && (
         <p className="text-[10px] font-mono text-[#888] uppercase tracking-[0.06em] text-center py-10">
-          {activeFilterCount > 0 ? 'No items matching your filters.' : category ? `No ${category} yet.` : 'Your closet is empty. Add your first item!'}
+          {activeFilterCount > 0 || selectedCategories.length > 0
+            ? 'No items matching your filters.'
+            : 'Your closet is empty. Add your first item!'}
         </p>
       )}
 

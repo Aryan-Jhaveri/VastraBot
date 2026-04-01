@@ -13,14 +13,19 @@ const isProd = process.env.NODE_ENV === 'production'
 const errMsg = (err: unknown) => isProd ? 'Internal server error' : String(err)
 
 // GET /api/items?category=&page=&limit=
+// category param may be repeated: ?category=tops&category=bottoms
 router.get('/', async (req, res) => {
   try {
-    const { category, color, season, brand, tags, page, limit: limitStr } = req.query as Record<string, string>
+    const { color, season, brand, tags, page, limit: limitStr } = req.query as Record<string, string>
+    const rawCategory = req.query.category
+    const categories: string[] = Array.isArray(rawCategory)
+      ? (rawCategory as string[]).filter(Boolean)
+      : rawCategory ? [rawCategory as string] : []
     const pageNum = Math.max(1, parseInt(page ?? '1', 10))
     const pageSize = Math.min(100, Math.max(1, parseInt(limitStr ?? '10', 10)))
 
     const allItems = await listItems({
-      category: category || undefined,
+      categories: categories.length ? categories : undefined,
       color: color || undefined,
       season: season || undefined,
       brand: brand || undefined,

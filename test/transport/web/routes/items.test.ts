@@ -73,7 +73,7 @@ describe('GET /', () => {
     const app = makeApp()
     await request(app).get('/?category=tops')
     expect(itemsTools.listItems).toHaveBeenCalledWith(
-      expect.objectContaining({ category: 'tops' }),
+      expect.objectContaining({ categories: ['tops'] }),
     )
   })
 })

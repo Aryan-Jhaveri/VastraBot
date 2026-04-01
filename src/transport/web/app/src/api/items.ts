@@ -49,7 +49,7 @@ export interface TagData {
 }
 
 export async function fetchItems(params: {
-  category?: string
+  categories?: string[]
   color?: string
   season?: string
   occasion?: string
@@ -59,7 +59,7 @@ export async function fetchItems(params: {
   limit?: number
 } = {}): Promise<ItemsPage> {
   const qs = new URLSearchParams()
-  if (params.category) qs.set('category', params.category)
+  if (params.categories?.length) params.categories.forEach(c => qs.append('category', c))
   if (params.color) qs.set('color', params.color)
   if (params.season) qs.set('season', params.season)
   if (params.occasion) qs.set('occasion', params.occasion)

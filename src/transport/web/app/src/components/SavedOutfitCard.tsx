@@ -3,9 +3,11 @@ import type { HydratedOutfit } from '../api/outfits'
 interface SavedOutfitCardProps {
   outfit: HydratedOutfit
   onClick?: () => void
+  selectable?: boolean
+  selected?: boolean
 }
 
-export function SavedOutfitCard({ outfit, onClick }: SavedOutfitCardProps) {
+export function SavedOutfitCard({ outfit, onClick, selectable, selected }: SavedOutfitCardProps) {
   const thumbnails = outfit.items.slice(0, 4)
   const seasons: string[] = (() => { try { return JSON.parse(outfit.season || '[]') } catch { return [] } })()
   const tags: string[] = (() => { try { return JSON.parse(outfit.tags || '[]') } catch { return [] } })()
@@ -13,8 +15,23 @@ export function SavedOutfitCard({ outfit, onClick }: SavedOutfitCardProps) {
   return (
     <button
       onClick={onClick}
-      className="relative overflow-hidden border-2 border-[#111] text-left bg-white w-full"
+      className={`relative overflow-hidden border-2 text-left bg-white w-full transition-colors ${
+        selected ? 'border-[#111]' : 'border-[#111]'
+      }`}
     >
+      {/* Selection checkbox overlay */}
+      {selectable && (
+        <div className={`absolute top-1.5 left-1.5 z-10 w-4 h-4 border-2 border-[#111] flex items-center justify-center transition-colors ${
+          selected ? 'bg-[#111]' : 'bg-white'
+        }`}>
+          {selected && (
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="white">
+              <path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+      )}
+
       {/* Photo area: cover photo OR 2×2 grid */}
       <div className="relative aspect-square overflow-hidden border-b-2 border-[#111] bg-[#f0f0f0]">
         {outfit.coverImageUri ? (

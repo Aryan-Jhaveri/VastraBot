@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useSavedOutfits } from '../hooks/useSavedOutfits'
 import { SavedOutfitCard } from '../components/SavedOutfitCard'
 import { OutfitDetail } from '../modals/OutfitDetail'
 import { FilterBar } from '../components/FilterBar'
 import { Spinner } from '../components/ui/Spinner'
+import { deleteOutfit } from '../api/outfits'
 import type { HydratedOutfit } from '../api/outfits'
 
 const SEASONS = ['spring', 'summer', 'fall', 'winter', 'all']
@@ -15,6 +16,11 @@ export function Outfits() {
   const [selectedTag, setSelectedTag] = useState('')
   const [aiOnly, setAiOnly] = useState(false)
   const [detail, setDetail] = useState<HydratedOutfit | null>(null)
+
+  // Select mode
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   // Derive unique occasions from actual data
   const occasions = [...new Set(outfits.map(o => o.occasion).filter(Boolean) as string[])]
@@ -40,6 +46,28 @@ export function Outfits() {
     setAiOnly(false)
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  async function deleteSelected() {
+    if (selectedIds.size === 0) return
+    setDeleting(true)
+    await Promise.all([...selectedIds].map(id => deleteOutfit(id)))
+    exitSelectMode()
+    void refetch()
+    setDeleting(false)
+  }
+
   const filterConfigs = [
     ...(occasions.length > 0 ? [{ key: 'occasion', label: 'Occasion', options: occasions }] : []),
     { key: 'season', label: 'Season', options: SEASONS },
@@ -62,11 +90,79 @@ export function Outfits() {
     return true
   })
 
+  const selectedOutfits = useMemo(
+    () => outfits.filter(o => selectedIds.has(o.id)),
+    [outfits, selectedIds],
+  )
+
   return (
     <div className="flex flex-col p-4 pb-24 gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-[22px] font-bold leading-none">Outfits.</h1>
+      <div className="flex items-center justify-between border-b-2 border-[#111] pb-2">
+        <div>
+          <h1 className="text-[22px] font-bold leading-none">Outfits.</h1>
+          {selectMode && (
+            <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] mt-0.5">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'select outfits'}
+            </p>
+          )}
+        </div>
+        {selectMode ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => void deleteSelected()}
+              disabled={selectedIds.size === 0 || deleting}
+              className="bg-[#111] text-white border-2 border-[#111] px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] transition-colors disabled:opacity-30 hover:bg-[#333]"
+            >
+              {deleting ? '...' : 'Delete'}
+            </button>
+            <button
+              onClick={exitSelectMode}
+              className="border-2 border-[#111] px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:bg-[#f0f0f0] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setSelectMode(true)}
+            className="border-2 border-[#111] px-3 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[0.08em] hover:bg-[#f0f0f0] transition-colors"
+          >
+            Select
+          </button>
+        )}
       </div>
+
+      {/* Selected outfits carousel — only in select mode */}
+      {selectMode && (
+        <div className="border-2 border-[#111] p-2">
+          {selectedOutfits.length === 0 ? (
+            <p className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em]">
+              Tap outfits below to select
+            </p>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-0.5">
+              {selectedOutfits.map(o => {
+                const thumb = o.coverImageUri
+                  ? `/${o.coverImageUri}`
+                  : o.items?.[0] ? `/${o.items[0].imageUri}` : null
+                return (
+                  <div key={o.id} className="relative shrink-0">
+                    {thumb
+                      ? <img src={thumb} alt={o.name} className="w-14 h-14 object-cover border border-[#111]" />
+                      : <div className="w-14 h-14 bg-[#f0f0f0] border border-[#111]" />}
+                    <button
+                      onClick={() => toggleSelect(o.id)}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-[#111] text-white text-[8px] flex items-center justify-center leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-2">
         <div className="flex-1">
@@ -115,7 +211,9 @@ export function Outfits() {
             <SavedOutfitCard
               key={outfit.id}
               outfit={outfit}
-              onClick={() => setDetail(outfit)}
+              selectable={selectMode}
+              selected={selectMode && selectedIds.has(outfit.id)}
+              onClick={() => selectMode ? toggleSelect(outfit.id) : setDetail(outfit)}
             />
           ))}
         </div>

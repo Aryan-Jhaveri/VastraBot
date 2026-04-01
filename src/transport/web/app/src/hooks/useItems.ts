@@ -3,7 +3,7 @@ import { fetchItems } from '../api/items'
 import type { ItemsPage } from '../api/items'
 
 interface UseItemsOptions {
-  category?: string
+  categories?: string[]
   color?: string
   season?: string
   occasion?: string
@@ -19,6 +19,7 @@ export function useItems(opts: UseItemsOptions = {}) {
   const [error, setError] = useState<string | null>(null)
 
   const tagsKey = opts.tags?.join(',') ?? ''
+  const categoriesKey = opts.categories?.join(',') ?? ''
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -32,7 +33,7 @@ export function useItems(opts: UseItemsOptions = {}) {
       setLoading(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opts.category, opts.color, opts.season, opts.occasion, opts.brand, opts.page, opts.limit, tagsKey])
+  }, [categoriesKey, opts.color, opts.season, opts.occasion, opts.brand, opts.page, opts.limit, tagsKey])
 
   useEffect(() => {
     void load()

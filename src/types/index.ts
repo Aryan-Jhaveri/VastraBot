@@ -69,6 +69,7 @@ export type AddItemInput = z.infer<typeof AddItemInputSchema>
 
 export const ListItemsInputSchema = z.object({
   category: z.string().optional(),
+  categories: z.array(z.string()).optional(),
   color: z.string().optional(),
   season: z.string().optional(),
   occasion: z.string().optional(),

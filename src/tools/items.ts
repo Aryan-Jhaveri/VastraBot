@@ -2,7 +2,7 @@ import * as queries from '../db/queries.js'
 import { saveImage, saveImageFromBase64, deleteImage } from '../storage/images.js'
 import { normalizeColor } from '../constants/colors.js'
 import type { Item, AddItemInput, ListItemsInput, UpdateItemInput } from '../types/index.js'
-import { like, desc, eq, and, sql } from 'drizzle-orm'
+import { like, desc, eq, and, sql, inArray } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { items } from '../db/schema.js'
 
@@ -40,7 +40,13 @@ export async function listItems(input: ListItemsInput = {}): Promise<Item[]> {
   // Build dynamic where conditions
   const conditions = []
 
-  if (input.category) conditions.push(eq(items.category, input.category))
+  if (input.categories?.length) {
+    conditions.push(input.categories.length === 1
+      ? eq(items.category, input.categories[0])
+      : inArray(items.category, input.categories))
+  } else if (input.category) {
+    conditions.push(eq(items.category, input.category))
+  }
   if (input.color) conditions.push(like(items.colors, `%${input.color}%`))
   if (input.season) conditions.push(like(items.season, `%${input.season}%`))
   if (input.occasion) conditions.push(like(items.occasion, `%${input.occasion}%`))
