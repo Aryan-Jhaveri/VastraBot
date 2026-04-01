@@ -191,19 +191,6 @@ export function JobModal({ job, initialValues, onClose, onSaved }: JobModalProps
     })()
   )
   const [theme, setTheme] = useState((existingParams.theme as string) ?? '')
-  const [chatId, setChatId] = useState<string>(
-    String((existingParams.chatId as string | number) || localStorage.getItem('closet-telegram-chat-id') || '')
-  )
-
-  useEffect(() => {
-    if (chatId) return
-    fetch('/api/config', { credentials: 'include', headers: { Authorization: `Bearer ${localStorage.getItem('closet-token') ?? ''}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then((cfg: { telegramChatId: number | null } | null) => {
-        if (cfg?.telegramChatId) setChatId(String(cfg.telegramChatId))
-      })
-      .catch(() => {})
-  }, [])
   const [geoError, setGeoError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -211,12 +198,6 @@ export function JobModal({ job, initialValues, onClose, onSaved }: JobModalProps
   useEffect(() => {
     if (!isEdit) setSchedule('0 8 * * *')
   }, [type, isEdit])
-
-  // For outfit_reminder: chatId is pre-filled from initialValues.params
-  const outfitReminderChatId = type === 'outfit_reminder'
-    ? String((existingParams.chatId as string) ?? chatId)
-    : chatId
-  const [reminderChatId, setReminderChatId] = useState(outfitReminderChatId)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -246,23 +227,10 @@ export function JobModal({ job, initialValues, onClose, onSaved }: JobModalProps
           return
         }
 
-        const chatIdNum = parseInt(chatId.trim(), 10)
-        if (!chatIdNum) {
-          setGeoError('Enter your Telegram Chat ID')
-          setSaving(false)
-          return
-        }
-        localStorage.setItem('closet-telegram-chat-id', chatId.trim())
-        params = { chatId: chatIdNum, lat: loc.lat, lon: loc.lon, locationName: loc.name, ...(theme.trim() ? { theme: theme.trim() } : {}) }
+        params = { lat: loc.lat, lon: loc.lon, locationName: loc.name, ...(theme.trim() ? { theme: theme.trim() } : {}) }
       } else if (type === 'outfit_reminder') {
-        if (!reminderChatId.trim()) {
-          setGeoError('Enter your Telegram Chat ID')
-          setSaving(false)
-          return
-        }
         params = {
           outfitId: existingParams.outfitId as string,
-          chatId: reminderChatId.trim(),
         }
       }
 
@@ -341,17 +309,6 @@ export function JobModal({ job, initialValues, onClose, onSaved }: JobModalProps
                 <p className="text-[9px] font-mono text-[#aaa]">Used for weather lookup</p>
               </div>
               <div className="flex flex-col gap-1">
-                <Input
-                  label="Telegram Chat ID"
-                  value={chatId}
-                  onChange={e => setChatId(e.target.value)}
-                  placeholder="e.g. 123456789"
-                />
-                <p className="text-[9px] font-mono text-[#aaa]">
-                  Send <span className="text-[#555]">/start</span> to @userinfobot on Telegram to get your ID
-                </p>
-              </div>
-              <div className="flex flex-col gap-1">
                 <label className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888]">
                   Theme / Prompt (optional)
                 </label>
@@ -367,21 +324,6 @@ export function JobModal({ job, initialValues, onClose, onSaved }: JobModalProps
             </>
           )}
 
-          {/* outfit_reminder: chatId field */}
-          {(type === 'outfit_reminder') && (
-            <div className="flex flex-col gap-1">
-              <Input
-                label="Telegram Chat ID"
-                value={reminderChatId}
-                onChange={e => setReminderChatId(e.target.value)}
-                placeholder="e.g. 123456789"
-                error={geoError ?? undefined}
-              />
-              <p className="text-[9px] font-mono text-[#aaa]">
-                Send <span className="text-[#555]">/start</span> to @userinfobot on Telegram to get your ID
-              </p>
-            </div>
-          )}
 
           {error && <p className="text-[11px] font-mono text-red-500">{error}</p>}
 

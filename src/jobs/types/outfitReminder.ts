@@ -2,10 +2,10 @@ import { z } from 'zod'
 import { InputFile } from 'grammy'
 import { getOutfitWithItems } from '../../tools/outfits.js'
 import { resolveImagePath } from '../../storage/images.js'
+import { getSettings } from '../../settings.js'
 import type { JobType, JobContext } from '../registry.js'
 
 export const OutfitReminderParamsSchema = z.object({
-  chatId: z.string().min(1),
   outfitId: z.string().min(1),
 })
 
@@ -19,7 +19,12 @@ export const outfitReminderJob: JobType<OutfitReminderParams> = {
   paramsSchema: OutfitReminderParamsSchema,
 
   async execute(params, ctx: JobContext) {
-    const { chatId, outfitId } = params
+    const { outfitId } = params
+    const { telegramChatId: chatId } = getSettings()
+    if (!chatId) {
+      console.warn('[outfit_reminder] No Telegram Chat ID configured in settings — skipping')
+      return
+    }
 
     const outfit = await getOutfitWithItems(outfitId)
     if (!outfit) {

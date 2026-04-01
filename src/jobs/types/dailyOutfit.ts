@@ -6,12 +6,11 @@ import { getCurrentWeather } from '../../tools/weather.js'
 import { suggestOutfits } from '../../ai/suggest.js'
 import { resolveImagePath } from '../../storage/images.js'
 import { formatWeather } from '../../transport/telegram/format.js'
+import { getSettings } from '../../settings.js'
 import type { JobType, JobContext } from '../registry.js'
 import type { Item } from '../../types/index.js'
 
 export const DailyOutfitParamsSchema = z.object({
-  // Telegram chat ID to send the push notification to
-  chatId: z.number().optional(),
   // Location for weather lookup
   lat: z.number().optional(),
   lon: z.number().optional(),
@@ -30,9 +29,11 @@ export const dailyOutfitJob: JobType<DailyOutfitParams> = {
   paramsSchema: DailyOutfitParamsSchema,
 
   async execute(params, ctx: JobContext) {
-    const { chatId, lat, lon, locationName, theme } = params
+    const { lat, lon, locationName, theme } = params
+    const { telegramChatId } = getSettings()
+    const chatId = telegramChatId ? parseInt(telegramChatId, 10) : undefined
 
-    // Skip execution if location hasn't been configured yet
+    // Skip execution if location or chat ID hasn't been configured yet
     if (!lat || !lon || !chatId) return
 
     let weather

@@ -251,7 +251,6 @@ export function OutfitDetail({ outfit: initialOutfit, onClose, onChanged }: Outf
             type: 'outfit_reminder',
             params: {
               outfitId: outfit.id,
-              chatId: settings.telegramChatId ?? '',
             },
           }}
           onClose={() => setScheduleModalOpen(false)}
