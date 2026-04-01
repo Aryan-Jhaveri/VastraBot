@@ -4,6 +4,7 @@ import { getAllJobs, getJob, insertJob, updateJob, toggleJob, deleteJob } from '
 import { listJobTypes, getJobType } from '../../../jobs/registry.js'
 import { addJobToScheduler, removeJobFromScheduler } from '../../../jobs/scheduler.js'
 import { schedulerBotApi } from '../server.js'
+import { getOutfit } from '../../../tools/outfits.js'
 
 const router = Router()
 
@@ -15,13 +16,27 @@ const CreateJobSchema = z.object({
   params: z.any().optional(),
 })
 
-// GET /api/jobs — list all jobs
-router.get('/', (_req, res) => {
+// GET /api/jobs — list all jobs; ?hydrate=true embeds outfit for outfit_reminder jobs
+router.get('/', async (req, res) => {
   try {
     const jobs = getAllJobs().map(j => ({
       ...j,
-      params: JSON.parse(j.params),
+      params: JSON.parse(j.params) as Record<string, unknown>,
     }))
+
+    if (req.query.hydrate === 'true') {
+      const hydrated = await Promise.all(
+        jobs.map(async (job) => {
+          if (job.type === 'outfit_reminder' && typeof job.params.outfitId === 'string') {
+            const outfit = await getOutfit(job.params.outfitId)
+            return { ...job, outfit: outfit ?? null }
+          }
+          return { ...job, outfit: null }
+        }),
+      )
+      return res.json(hydrated)
+    }
+
     res.json(jobs)
   } catch (err) {
     res.status(500).json({ error: String(err) })

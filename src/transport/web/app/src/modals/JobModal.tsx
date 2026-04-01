@@ -159,20 +159,29 @@ function SchedulePicker({ value, onChange }: SchedulePickerProps) {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
+export interface JobFormState {
+  name: string
+  type: string
+  schedule: string
+  params: Record<string, unknown>
+}
+
 interface JobModalProps {
   job?: ScheduledJob
+  initialValues?: Partial<JobFormState>
   onClose: () => void
   onSaved: (job: ScheduledJob) => void
 }
 
-export function JobModal({ job, onClose, onSaved }: JobModalProps) {
+export function JobModal({ job, initialValues, onClose, onSaved }: JobModalProps) {
   const isEdit = !!job
-  const type = job?.type ?? 'daily_outfit'
+  const isTypeLocked = !isEdit && !!initialValues?.type
+  const type = job?.type ?? initialValues?.type ?? 'daily_outfit'
 
-  const [name, setName] = useState(job?.name ?? '')
+  const [name, setName] = useState(job?.name ?? initialValues?.name ?? '')
   const [schedule, setSchedule] = useState(job?.schedule ?? '0 8 * * *')
 
-  const existingParams = job?.params ?? {}
+  const existingParams = job?.params ?? (initialValues?.params as Record<string, unknown> | undefined) ?? {}
   const [city, setCity] = useState(
     (existingParams.locationName as string) ?? (() => {
       try {
@@ -182,19 +191,6 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
     })()
   )
   const [theme, setTheme] = useState((existingParams.theme as string) ?? '')
-  const [chatId, setChatId] = useState<string>(
-    String((existingParams.chatId as number) || localStorage.getItem('closet-telegram-chat-id') || '')
-  )
-
-  useEffect(() => {
-    if (chatId) return
-    fetch('/api/config', { credentials: 'include', headers: { Authorization: `Bearer ${localStorage.getItem('closet-token') ?? ''}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then((cfg: { telegramChatId: number | null } | null) => {
-        if (cfg?.telegramChatId) setChatId(String(cfg.telegramChatId))
-      })
-      .catch(() => {})
-  }, [])
   const [geoError, setGeoError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -231,14 +227,11 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
           return
         }
 
-        const chatIdNum = parseInt(chatId.trim(), 10)
-        if (!chatIdNum) {
-          setGeoError('Enter your Telegram Chat ID')
-          setSaving(false)
-          return
+        params = { lat: loc.lat, lon: loc.lon, locationName: loc.name, ...(theme.trim() ? { theme: theme.trim() } : {}) }
+      } else if (type === 'outfit_reminder') {
+        params = {
+          outfitId: existingParams.outfitId as string,
         }
-        localStorage.setItem('closet-telegram-chat-id', chatId.trim())
-        params = { chatId: chatIdNum, lat: loc.lat, lon: loc.lon, locationName: loc.name, ...(theme.trim() ? { theme: theme.trim() } : {}) }
       }
 
       const saved = isEdit
@@ -253,6 +246,11 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
     }
   }
 
+  const TYPE_LABELS: Record<string, string> = {
+    daily_outfit: 'Daily Outfit',
+    outfit_reminder: 'Outfit Reminder',
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
@@ -265,6 +263,19 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
           </h2>
           <button onClick={onClose} className="text-[#888] hover:text-[#111] font-mono text-sm leading-none">✕</button>
         </div>
+
+        {/* Locked type badge */}
+        {isTypeLocked && (
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888]">Type</span>
+            <span className="border-2 border-[#111] px-2 py-0.5 text-[10px] font-bold font-mono uppercase tracking-[0.06em] bg-[#111] text-white">
+              {TYPE_LABELS[type] ?? type}
+            </span>
+            {typeof existingParams.outfitId === 'string' && (
+              <span className="text-[9px] font-mono text-[#888]">outfit locked</span>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Name */}
@@ -298,17 +309,6 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
                 <p className="text-[9px] font-mono text-[#aaa]">Used for weather lookup</p>
               </div>
               <div className="flex flex-col gap-1">
-                <Input
-                  label="Telegram Chat ID"
-                  value={chatId}
-                  onChange={e => setChatId(e.target.value)}
-                  placeholder="e.g. 123456789"
-                />
-                <p className="text-[9px] font-mono text-[#aaa]">
-                  Send <span className="text-[#555]">/start</span> to @userinfobot on Telegram to get your ID
-                </p>
-              </div>
-              <div className="flex flex-col gap-1">
                 <label className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888]">
                   Theme / Prompt (optional)
                 </label>
@@ -323,6 +323,7 @@ export function JobModal({ job, onClose, onSaved }: JobModalProps) {
               </div>
             </>
           )}
+
 
           {error && <p className="text-[11px] font-mono text-red-500">{error}</p>}
 
