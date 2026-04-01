@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/Aryan-Jhaveri/VastraBot">
-    <img src="assets/README_banner.png" alt="VastraBot — AI-Powered Wardrobe Management" width="100%" />
+    <img src="assets/banner.png" alt="VastraBot — AI-Powered Wardrobe Management" width="100%" />
   </a>
 </p>
 
