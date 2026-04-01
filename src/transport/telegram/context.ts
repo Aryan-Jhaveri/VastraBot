@@ -10,6 +10,7 @@ export interface SessionData {
   locationName?: string
   awaitingLocation?: boolean
   agentHistory?: AgentTurn[]
+  pendingScheduleOutfitId?: string
 }
 
 export type BotContext = ConversationFlavor<Context & SessionFlavor<SessionData>>

@@ -28,9 +28,14 @@ vi.mock('../../../../src/transport/web/server.js', () => ({
   schedulerBotApi: { sendMessage: vi.fn() },
 }))
 
+vi.mock('../../../../src/tools/outfits.js', () => ({
+  getOutfit: vi.fn(),
+}))
+
 import * as store from '../../../../src/jobs/store.js'
 import * as registry from '../../../../src/jobs/registry.js'
 import * as scheduler from '../../../../src/jobs/scheduler.js'
+import * as outfitTools from '../../../../src/tools/outfits.js'
 import jobsRouter from '../../../../src/transport/web/routes/jobs.js'
 
 function makeApp() {
@@ -270,5 +275,53 @@ describe('DELETE /:id', () => {
     vi.mocked(store.getJob).mockReturnValue(undefined)
     const res = await request(makeApp()).delete('/ghost')
     expect(res.status).toBe(404)
+  })
+})
+
+describe('GET /?hydrate=true', () => {
+  const mockOutfitReminderJob = {
+    id: 'job-2',
+    name: 'Wear Summer Vibes',
+    type: 'outfit_reminder',
+    schedule: '0 8 * * 1',
+    params: '{"chatId":"123","outfitId":"outfit-1"}',
+    enabled: 1,
+    lastRunAt: null,
+    createdAt: Date.now(),
+  }
+
+  const mockOutfit = {
+    id: 'outfit-1',
+    name: 'Summer Vibes',
+    coverImageUri: null,
+    itemIds: '[]',
+    occasion: 'casual',
+  }
+
+  it('embeds outfit for outfit_reminder jobs', async () => {
+    vi.mocked(store.getAllJobs).mockReturnValue([mockOutfitReminderJob] as ReturnType<typeof store.getAllJobs>)
+    vi.mocked(outfitTools.getOutfit).mockResolvedValue(mockOutfit as ReturnType<typeof outfitTools.getOutfit> extends Promise<infer T> ? T : never)
+
+    const res = await request(makeApp()).get('/?hydrate=true')
+    expect(res.status).toBe(200)
+    expect(res.body[0].outfit).toBeTruthy()
+    expect(res.body[0].outfit.id).toBe('outfit-1')
+  })
+
+  it('sets outfit: null for daily_outfit jobs', async () => {
+    vi.mocked(store.getAllJobs).mockReturnValue([mockJob] as ReturnType<typeof store.getAllJobs>)
+
+    const res = await request(makeApp()).get('/?hydrate=true')
+    expect(res.status).toBe(200)
+    expect(res.body[0].outfit).toBeNull()
+  })
+
+  it('sets outfit: null when outfit_reminder outfit is deleted', async () => {
+    vi.mocked(store.getAllJobs).mockReturnValue([mockOutfitReminderJob] as ReturnType<typeof store.getAllJobs>)
+    vi.mocked(outfitTools.getOutfit).mockResolvedValue(undefined)
+
+    const res = await request(makeApp()).get('/?hydrate=true')
+    expect(res.status).toBe(200)
+    expect(res.body[0].outfit).toBeNull()
   })
 })

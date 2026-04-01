@@ -124,6 +124,11 @@ async function main() {
     const data = ctx.callbackQuery.data
     if (data.startsWith('job:')) {
       await handleJobCallback(ctx)
+    } else if (/^outfit:schedule:(.+)$/.test(data)) {
+      await ctx.answerCallbackQuery()
+      const outfitId = data.replace('outfit:schedule:', '')
+      ctx.session.pendingScheduleOutfitId = outfitId
+      await ctx.conversation.enter('addJob')
     } else {
       // Unhandled callback (e.g. stale buttons) — just dismiss spinner
       await ctx.answerCallbackQuery()

@@ -19,7 +19,9 @@ import weatherRouter from './routes/weather.js'
 import userPhotosRouter from './routes/userPhotos.js'
 import tryonRouter from './routes/tryon.js'
 import jobsRouter from './routes/jobs.js'
+import settingsRouter from './routes/settings.js'
 import { registerBuiltInJobTypes } from '../../jobs/types/index.js'
+import { getSettings, updateSettings } from '../../settings.js'
 import { seedDefaultJobs } from '../../jobs/seed.js'
 import { initScheduler } from '../../jobs/scheduler.js'
 import { Bot } from 'grammy'
@@ -54,6 +56,12 @@ migrate(db, { migrationsFolder })
 
 // Seed default jobs (idempotent — only inserts if missing)
 seedDefaultJobs()
+
+// Auto-populate telegramChatId from env if not set
+if (process.env.TELEGRAM_ALLOWED_USER_ID && !getSettings().telegramChatId) {
+  updateSettings({ telegramChatId: process.env.TELEGRAM_ALLOWED_USER_ID })
+  console.log('[server] Seeded telegramChatId from TELEGRAM_ALLOWED_USER_ID')
+}
 
 // Seed WEB_AUTH_PASSWORD env var into DB settings on first startup
 if (process.env.WEB_AUTH_PASSWORD && !getSetting('password')) {
@@ -204,6 +212,7 @@ app.use('/api/weather', authGuard, weatherRouter)
 app.use('/api/user-photos', authGuard, userPhotosRouter)
 app.use('/api/tryon', authGuard, tryonRouter)
 app.use('/api/jobs', authGuard, jobsRouter)
+app.use('/api/settings', authGuard, settingsRouter)
 
 // Production: serve built SPA
 if (!isDev) {

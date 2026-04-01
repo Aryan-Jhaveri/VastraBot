@@ -12,7 +12,22 @@ vi.mock('../../src/api/jobs', () => ({
   updateJob: vi.fn(),
 }))
 
+vi.mock('../../src/api/client', () => ({
+  apiFetchJSON: vi.fn(),
+}))
+
+vi.mock('../../src/modals/JobModal', () => ({
+  JobModal: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="job-modal">
+      <span>New Job</span>
+      <span>Edit Job</span>
+      <button onClick={onClose}>Close</button>
+    </div>
+  ),
+}))
+
 import * as jobsApi from '../../src/api/jobs'
+import * as clientApi from '../../src/api/client'
 
 const mockJob = {
   id: 'job-1',
@@ -23,39 +38,65 @@ const mockJob = {
   enabled: 1,
   lastRunAt: null,
   createdAt: Date.now(),
+  outfit: null,
+}
+
+const mockOutfitReminderJob = {
+  id: 'job-2',
+  name: 'Wear Summer Vibes',
+  type: 'outfit_reminder',
+  schedule: '0 8 * * 1',
+  params: { chatId: '123', outfitId: 'outfit-1' },
+  enabled: 1,
+  lastRunAt: null,
+  createdAt: Date.now(),
+  outfit: {
+    id: 'outfit-1',
+    name: 'Summer Vibes',
+    coverImageUri: 'images/outfits/cover.jpg',
+  },
+}
+
+const mockOutfitReminderNoThumb = {
+  ...mockOutfitReminderJob,
+  id: 'job-3',
+  outfit: { id: 'outfit-2', name: 'Work Set', coverImageUri: null },
 }
 
 describe('Jobs page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
   it('shows spinner while loading', () => {
-    vi.mocked(jobsApi.fetchJobs).mockReturnValue(new Promise(() => {}))
+    vi.mocked(clientApi.apiFetchJSON).mockReturnValue(new Promise(() => {}))
     render(<Jobs />)
     expect(document.querySelector('svg.animate-spin')).toBeTruthy()
   })
 
   it('renders job name after load', async () => {
-    vi.mocked(jobsApi.fetchJobs).mockResolvedValue([mockJob])
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([mockJob])
     render(<Jobs />)
 
     await waitFor(() => expect(screen.getByText('Morning Outfit')).toBeInTheDocument())
   })
 
   it('shows empty state when no jobs', async () => {
-    vi.mocked(jobsApi.fetchJobs).mockResolvedValue([])
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([])
     render(<Jobs />)
 
     await waitFor(() => expect(screen.getByText(/No scheduled jobs yet/i)).toBeInTheDocument())
   })
 
   it('shows Daily at 8am for known cron', async () => {
-    vi.mocked(jobsApi.fetchJobs).mockResolvedValue([mockJob])
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([mockJob])
     render(<Jobs />)
 
     await waitFor(() => expect(screen.getByText('Daily at 8am')).toBeInTheDocument())
   })
 
   it('toggles job via API when Pause clicked', async () => {
-    vi.mocked(jobsApi.fetchJobs).mockResolvedValue([mockJob])
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([mockJob])
     vi.mocked(jobsApi.toggleJob).mockResolvedValue({ ...mockJob, enabled: 0 })
 
     render(<Jobs />)
@@ -66,7 +107,7 @@ describe('Jobs page', () => {
   })
 
   it('deletes job after confirm', async () => {
-    vi.mocked(jobsApi.fetchJobs).mockResolvedValue([mockJob])
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([mockJob])
     vi.mocked(jobsApi.deleteJob).mockResolvedValue(undefined)
 
     render(<Jobs />)
@@ -78,7 +119,7 @@ describe('Jobs page', () => {
   })
 
   it('opens modal when + Add is clicked', async () => {
-    vi.mocked(jobsApi.fetchJobs).mockResolvedValue([])
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([])
     render(<Jobs />)
 
     await waitFor(() => screen.getByText(/No scheduled jobs yet/i))
@@ -87,11 +128,39 @@ describe('Jobs page', () => {
   })
 
   it('opens edit modal with job data pre-filled', async () => {
-    vi.mocked(jobsApi.fetchJobs).mockResolvedValue([mockJob])
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([mockJob])
     render(<Jobs />)
 
     await waitFor(() => screen.getByText('Morning Outfit'))
     fireEvent.click(screen.getByText('Edit'))
     expect(screen.getByText('Edit Job')).toBeInTheDocument()
+  })
+
+  it('renders outfit thumbnail for outfit_reminder job with cover', async () => {
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([mockOutfitReminderJob])
+    render(<Jobs />)
+
+    await waitFor(() => screen.getByText('Wear Summer Vibes'))
+    const img = document.querySelector('img[alt="Outfit"]') as HTMLImageElement | null
+    expect(img).toBeTruthy()
+    expect(img?.src).toContain('images/outfits/cover.jpg')
+  })
+
+  it('renders clock icon for daily_outfit job', async () => {
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([mockJob])
+    render(<Jobs />)
+
+    await waitFor(() => screen.getByText('Morning Outfit'))
+    // No thumbnail image for daily_outfit
+    expect(document.querySelector('img[alt="Outfit"]')).toBeNull()
+    // SVG clock icon present
+    expect(document.querySelector('svg')).toBeTruthy()
+  })
+
+  it('shows Outfit reminder type label for outfit_reminder jobs', async () => {
+    vi.mocked(clientApi.apiFetchJSON).mockResolvedValue([mockOutfitReminderJob])
+    render(<Jobs />)
+
+    await waitFor(() => expect(screen.getByText('Outfit reminder')).toBeInTheDocument())
   })
 })

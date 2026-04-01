@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { useLocation } from '../hooks/useLocation'
 import { Button } from '../components/ui/Button'
 import { getToken, setToken, clearToken } from '../api/client'
+import { useSettings } from '../hooks/useSettings'
 
 export function Settings({ onLogout }: { onLogout: () => void }) {
   const navigate = useNavigate()
   const { location, geocode, clearLocation } = useLocation()
   const [cityInput, setCityInput] = useState(location?.name ?? '')
   const [geoLoading, setGeoLoading] = useState(false)
+  const { settings, update: updateSettings } = useSettings()
+  const [chatIdInput, setChatIdInput] = useState<string | null>(null)
+  const [chatIdSaving, setChatIdSaving] = useState(false)
+  const [chatIdSuccess, setChatIdSuccess] = useState(false)
 
   // Password change — hidden until user taps "Change Password"
   const [showPwForm, setShowPwForm] = useState(false)
@@ -99,6 +104,63 @@ export function Settings({ onLogout }: { onLogout: () => void }) {
         />
         <Button type="submit" variant="secondary" loading={geoLoading}>Update</Button>
       </form>
+
+      {/* Telegram Notifications */}
+      <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888] mt-6 mb-2 pb-1 border-b border-[#e0e0e0]">Telegram Notifications</p>
+      <div className="border-b border-[#f0f0f0] py-3 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium">Chat ID</p>
+          {settings.telegramChatId && chatIdInput === null && (
+            <span className="text-[10px] font-mono text-[#555]">{settings.telegramChatId}</span>
+          )}
+        </div>
+        {chatIdInput !== null ? (
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              setChatIdSaving(true)
+              setChatIdSuccess(false)
+              try {
+                await updateSettings({ telegramChatId: chatIdInput.trim() || undefined })
+                setChatIdSuccess(true)
+                setChatIdInput(null)
+              } finally {
+                setChatIdSaving(false)
+              }
+            }}
+            className="flex gap-2"
+          >
+            <input
+              value={chatIdInput}
+              onChange={e => setChatIdInput(e.target.value)}
+              placeholder="e.g. 123456789"
+              className="flex-1 border-2 border-[#111] px-3 py-2 text-sm font-mono outline-none focus:bg-[#f0f0f0]"
+              autoFocus
+            />
+            <Button type="submit" variant="secondary" loading={chatIdSaving}>Save</Button>
+            <button
+              type="button"
+              onClick={() => setChatIdInput(null)}
+              className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] hover:text-[#111] px-2"
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <button
+            onClick={() => { setChatIdInput(settings.telegramChatId ?? ''); setChatIdSuccess(false) }}
+            className="text-[9px] font-mono text-[#888] uppercase tracking-[0.06em] hover:text-[#111] text-left"
+          >
+            {settings.telegramChatId ? 'Edit' : 'Set Chat ID'}
+          </button>
+        )}
+        {chatIdSuccess && (
+          <p className="text-[9px] font-mono text-green-600">Saved</p>
+        )}
+        <p className="text-[9px] font-mono text-[#aaa]">
+          Message @userinfobot on Telegram to find your Chat ID. Used for outfit reminders.
+        </p>
+      </div>
 
       {/* Scheduled jobs */}
       <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] text-[#888] mt-6 mb-2 pb-1 border-b border-[#e0e0e0]">Automation</p>
