@@ -43,16 +43,13 @@ interface JobCardProps {
   job: HydratedJob
   onEdit: (job: HydratedJob) => void
   onToggle: (job: HydratedJob) => void
-  onDelete: (job: HydratedJob) => void
   toggling: boolean
-  deleting: boolean
   selectable?: boolean
   selected?: boolean
   onSelect?: () => void
 }
 
-function JobCard({ job, onEdit, onToggle, onDelete, toggling, deleting, selectable, selected, onSelect }: JobCardProps) {
-  const [confirmDelete, setConfirmDelete] = useState(false)
+function JobCard({ job, onEdit, onToggle, toggling, selectable, selected, onSelect }: JobCardProps) {
 
   const thumbnailUri = job.outfit?.coverImageUri
     ?? (job.outfit as (Outfit & { items?: Array<{ imageUri?: string }> }) | null)?.items?.[0]?.imageUri
@@ -123,37 +120,9 @@ function JobCard({ job, onEdit, onToggle, onDelete, toggling, deleting, selectab
         )}
       </div>
 
-      <div className="border-t border-[#f0f0f0] pt-2 flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-0.5">
-          <p className="text-[10px] font-mono text-[#555]">{formatSchedule(job.schedule)}</p>
-          <p className="text-[9px] font-mono text-[#aaa]">Last run: {formatLastRun(job.lastRunAt)}</p>
-        </div>
-
-        {!selectable && (confirmDelete ? (
-          <div className="flex items-center gap-1">
-            <span className="text-[9px] font-mono text-[#888]">Delete?</span>
-            <button
-              onClick={() => onDelete(job)}
-              disabled={deleting}
-              className="text-[9px] font-bold font-mono text-red-500 hover:text-red-700 px-1.5 py-1 border border-red-300 hover:border-red-500"
-            >
-              {deleting ? '…' : 'Yes'}
-            </button>
-            <button
-              onClick={() => setConfirmDelete(false)}
-              className="text-[9px] font-mono text-[#888] hover:text-[#111] px-1.5 py-1"
-            >
-              No
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="text-[9px] font-mono text-[#bbb] hover:text-red-400 uppercase tracking-[0.06em]"
-          >
-            Delete
-          </button>
-        ))}
+      <div className="border-t border-[#f0f0f0] pt-2">
+        <p className="text-[10px] font-mono text-[#555]">{formatSchedule(job.schedule)}</p>
+        <p className="text-[9px] font-mono text-[#aaa]">Last run: {formatLastRun(job.lastRunAt)}</p>
       </div>
     </div>
   )
@@ -165,7 +134,6 @@ export function Jobs() {
   const [error, setError] = useState<string | null>(null)
   const [modalJob, setModalJob] = useState<HydratedJob | 'new' | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState<string | null>(null)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
@@ -192,18 +160,6 @@ export function Jobs() {
       setError(String(err))
     } finally {
       setToggling(null)
-    }
-  }
-
-  async function handleDelete(job: HydratedJob) {
-    setDeleting(job.id)
-    try {
-      await deleteJob(job.id)
-      setJobs(prev => prev.filter(j => j.id !== job.id))
-    } catch (err) {
-      setError(String(err))
-    } finally {
-      setDeleting(null)
     }
   }
 
@@ -314,9 +270,7 @@ export function Jobs() {
             job={job}
             onEdit={j => setModalJob(j)}
             onToggle={handleToggle}
-            onDelete={handleDelete}
             toggling={toggling === job.id}
-            deleting={deleting === job.id}
             selectable={selectMode}
             selected={selectMode && selectedIds.has(job.id)}
             onSelect={() => toggleSelect(job.id)}
