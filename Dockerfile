@@ -2,7 +2,7 @@
 FROM node:22-alpine AS frontend-builder
 WORKDIR /app/frontend
 COPY src/transport/web/app/package*.json ./
-RUN npm ci
+RUN npm install
 COPY src/transport/web/app/ .
 RUN npm run build
 
@@ -15,7 +15,7 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 COPY src/ src/
 
