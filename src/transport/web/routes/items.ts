@@ -4,7 +4,7 @@ import { addItem, listItems, getItem, updateItem, deleteItem, markWorn } from '.
 import { categorizeItem } from '../../../ai/categorize.js'
 import { scanTag } from '../../../ai/scanTag.js'
 import { saveImageFromBase64 } from '../../../storage/images.js'
-import { updateItem as dbUpdateItem, getUniqueTags } from '../../../db/queries.js'
+import { updateItem as dbUpdateItem, getUniqueTags, getUniqueSubcategories } from '../../../db/queries.js'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } })
@@ -59,7 +59,8 @@ router.post('/analyze', upload.single('image'), async (req, res) => {
     if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'File must be an image' })
     const base64 = req.file.buffer.toString('base64')
     const existingTags = getUniqueTags()
-    const classification = await categorizeItem(base64, existingTags)
+    const existingSubcategories = getUniqueSubcategories()
+    const classification = await categorizeItem(base64, existingTags, existingSubcategories)
     res.json(classification)
   } catch (err) {
     res.status(500).json({ error: errMsg(err) })
@@ -89,6 +90,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       occasion: body.occasion ? JSON.parse(body.occasion) : undefined,
       aiDescription: body.aiDescription || undefined,
       careInstructions: body.careInstructions ? JSON.parse(body.careInstructions) : undefined,
+      wearContext: body.wearContext || undefined,
     })
 
     res.status(201).json(item)

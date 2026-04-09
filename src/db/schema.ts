@@ -17,6 +17,7 @@ export const items = sqliteTable('items', {
   tags: text('tags').default('[]'),
   aiDescription: text('ai_description'),
   occasion: text('occasion').default('[]'),
+  wearContext: text('wear_context'),
 
   materialSource: text('material_source'),
 
@@ -56,6 +57,7 @@ export const tryonResults = sqliteTable('tryon_results', {
   outfitId: text('outfit_id'),
   itemIds: text('item_ids').notNull(),
   resultImageUri: text('result_image_uri').notNull(),
+  promptInstruction: text('prompt_instruction'),
   createdAt: integer('created_at').notNull(),
 })
 

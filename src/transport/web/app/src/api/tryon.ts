@@ -11,6 +11,7 @@ export interface TryonHistoryItem {
   outfitId: string | null
   itemIds: string  // JSON string
   resultImageUri: string
+  promptInstruction?: string
   createdAt: number
 }
 
@@ -18,10 +19,11 @@ export async function generateTryOn(
   userPhotoId: string,
   itemIds: string[],
   garmentUris?: string[],
+  userInstruction?: string,
 ): Promise<TryonResult> {
   return apiFetchJSON('/api/tryon', {
     method: 'POST',
-    body: JSON.stringify({ userPhotoId, itemIds, garmentUris }),
+    body: JSON.stringify({ userPhotoId, itemIds, garmentUris, userInstruction }),
   })
 }
 

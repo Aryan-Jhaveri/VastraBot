@@ -22,22 +22,44 @@ PROHIBITIONS:
 - DO NOT change the person's pose.
 - DO NOT hallucinate or guess facial details.`
 
+function buildPrompt(garmentContexts?: string[], userInstruction?: string): string {
+  let prompt = TRYON_PROMPT
+
+  if (garmentContexts?.length) {
+    prompt += '\n\nGARMENT CONTEXT (use to correctly interpret each clothing image):\n'
+    garmentContexts.forEach((ctx, i) => {
+      prompt += `Garment ${i + 1}: ${ctx}\n`
+    })
+  }
+
+  if (userInstruction?.trim()) {
+    prompt += `\n\nWEAR INSTRUCTION (user-specified styling — apply this to how the garments are placed):\n`
+    prompt += userInstruction.trim()
+  }
+
+  return prompt
+}
+
 /**
  * Generate a virtual try-on image.
  * @param userImageBase64 - Base64 of the person photo
  * @param itemImageBase64s - Base64 array of clothing item images
+ * @param garmentContexts - Optional structured descriptions of each garment (category, subcategory, tags)
+ * @param userInstruction - Optional user-specified styling instruction (e.g. "worn as a turban")
  * @returns Relative path to the saved result image (e.g. "images/tryon/abc.jpg")
  */
 export async function generateTryOn(
   userImageBase64: string,
   itemImageBase64s: string[],
+  garmentContexts?: string[],
+  userInstruction?: string,
 ): Promise<string> {
   const parts = [
     { inlineData: { mimeType: 'image/jpeg', data: userImageBase64 } },
     ...itemImageBase64s.map(img => ({
       inlineData: { mimeType: 'image/jpeg', data: img },
     })),
-    { text: TRYON_PROMPT },
+    { text: buildPrompt(garmentContexts, userInstruction) },
   ]
 
   const response = await ai.models.generateContent({

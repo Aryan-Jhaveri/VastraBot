@@ -63,6 +63,7 @@ export const AddItemInputSchema = z.object({
   tags: z.array(z.string()).optional(),
   aiDescription: z.string().optional(),
   occasion: z.array(z.string()).optional(),
+  wearContext: z.string().nullable().optional(),
   autoAnalyze: z.boolean().default(true),
 })
 export type AddItemInput = z.infer<typeof AddItemInputSchema>
@@ -138,6 +139,7 @@ export const ItemClassificationSchema = z.object({
   season: z.array(z.string()),
   ai_description: z.string(),
   suggested_tags: z.array(z.string()),
+  wear_context: z.string().nullable().optional(),
 })
 export type ItemClassification = z.infer<typeof ItemClassificationSchema>
 

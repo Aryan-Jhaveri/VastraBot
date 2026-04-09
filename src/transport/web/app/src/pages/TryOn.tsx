@@ -15,6 +15,63 @@ import { Spinner } from '../components/ui/Spinner'
 import { cropToAspectRatio } from '../lib/cropImage'
 import { nanoid } from 'nanoid'
 
+const ALL_WEAR_CHIPS = [
+  { label: 'As turban',      instruction: 'Wrap the fabric around the head as a turban' },
+  { label: 'As hijab',       instruction: 'Style as a hijab: fabric frames the face and covers the hair' },
+  { label: 'Belted',         instruction: 'Belt the coat or jacket closed at the waist' },
+  { label: 'Collar up',      instruction: 'Raise and fold the collar upward' },
+  { label: 'Unbuttoned',     instruction: 'Leave the coat or jacket fully unbuttoned and open' },
+  { label: 'Hood up',        instruction: 'Pull the hood up over the head' },
+  { label: 'Sleeves rolled', instruction: 'Roll the sleeves up to the elbow' },
+  { label: 'Draped',         instruction: 'Drape the fabric loosely over one shoulder' },
+  { label: 'Tucked in',      instruction: 'Tuck the shirt or top fully into the waistband' },
+  { label: 'Tied at front',  instruction: 'Tie the front hem of the garment in a knot' },
+  { label: 'Layered open',   instruction: 'Wear the outer layer fully open over the inner garment' },
+]
+
+type WearChip = typeof ALL_WEAR_CHIPS[number]
+
+function deriveWearChips(selectedIds: Set<string>, allItems: Item[]): WearChip[] {
+  const selected = allItems.filter(i => selectedIds.has(i.id))
+  if (selected.length === 0) return ALL_WEAR_CHIPS
+
+  const cats = new Set(selected.map(i => i.category))
+  const subs = new Set(selected.map(i => i.subcategory?.toLowerCase()).filter(Boolean) as string[])
+
+  const chips: WearChip[] = []
+
+  // Headwear / wraps
+  if (subs.has('turban'))                chips.push(ALL_WEAR_CHIPS[0])
+  if (subs.has('hijab'))                 chips.push(ALL_WEAR_CHIPS[1])
+  if (subs.has('scarf') || subs.has('dupatta') || subs.has('keffiyeh') || subs.has('tichel') || subs.has('bandana'))
+                                          chips.push(ALL_WEAR_CHIPS[7]) // Draped
+
+  // Outerwear
+  if (cats.has('outerwear')) {
+    chips.push(ALL_WEAR_CHIPS[2])  // Belted
+    chips.push(ALL_WEAR_CHIPS[3])  // Collar up
+    chips.push(ALL_WEAR_CHIPS[4])  // Unbuttoned
+    chips.push(ALL_WEAR_CHIPS[5])  // Hood up
+    chips.push(ALL_WEAR_CHIPS[10]) // Layered open
+  }
+
+  // Tops / dresses
+  if (cats.has('tops') || cats.has('dresses') || cats.has('activewear')) {
+    chips.push(ALL_WEAR_CHIPS[8])  // Tucked in
+    chips.push(ALL_WEAR_CHIPS[9])  // Tied at front
+    chips.push(ALL_WEAR_CHIPS[6])  // Sleeves rolled
+  }
+
+  // Accessories (non-headwear)
+  if (cats.has('accessories') && !subs.has('turban') && !subs.has('hijab')) {
+    if (!chips.includes(ALL_WEAR_CHIPS[7])) chips.push(ALL_WEAR_CHIPS[7]) // Draped
+  }
+
+  // Deduplicate while preserving order
+  const seen = new Set<string>()
+  return chips.filter(c => seen.has(c.label) ? false : (seen.add(c.label), true))
+}
+
 type TryOnStep = 'pick-photo' | 'pick-items' | 'result'
 type ItemsTab = 'items' | 'outfits' | 'upload'
 
@@ -57,7 +114,9 @@ export function TryOn() {
 
   // Result
   const [generating, setGenerating] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
   const [resultUri, setResultUri] = useState<string | null>(null)
+  const [userInstruction, setUserInstruction] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   // History
@@ -142,6 +201,12 @@ export function TryOn() {
   )
   const itemFilterValues = { category: filterCategory, color: filterColor, tag: filterTag }
   const itemFilterCount = [filterCategory, filterColor, filterTag].filter(Boolean).length
+
+  // Derive contextually relevant wear chips from currently selected items
+  const wearChips = useMemo(
+    () => deriveWearChips(selectedItemIds, items),
+    [selectedItemIds, items],
+  )
 
   async function handleDeletePhoto(id: string) {
     setDeletingPhotoId(id)
@@ -235,13 +300,54 @@ export function TryOn() {
         selectedPhotoId,
         [...selectedItemIds],
         garmentUris.length ? garmentUris : undefined,
+        userInstruction.trim() || undefined,
       )
       setResultUri(result.resultImageUri)
+      setHistory(prev => [{
+        id: result.tryonId,
+        userPhotoId: selectedPhotoId,
+        outfitId: null,
+        itemIds: JSON.stringify([...selectedItemIds]),
+        resultImageUri: result.resultImageUri,
+        promptInstruction: userInstruction.trim() || undefined,
+        createdAt: Date.now(),
+      }, ...prev])
     } catch (err) {
       setError(String(err))
       setStep('pick-items')
     } finally {
       setGenerating(false)
+    }
+  }
+
+  async function handleRegenerate() {
+    if (!selectedPhotoId || (selectedItemIds.size === 0 && uploadedGarments.length === 0)) return
+    setRegenerating(true)
+    setError(null)
+    try {
+      const garmentUris = uploadedGarments
+        .filter(g => g.imageUri !== null)
+        .map(g => g.imageUri!)
+      const result = await generateTryOn(
+        selectedPhotoId,
+        [...selectedItemIds],
+        garmentUris.length ? garmentUris : undefined,
+        userInstruction.trim() || undefined,
+      )
+      setResultUri(result.resultImageUri)
+      setHistory(prev => [{
+        id: result.tryonId,
+        userPhotoId: selectedPhotoId,
+        outfitId: null,
+        itemIds: JSON.stringify([...selectedItemIds]),
+        resultImageUri: result.resultImageUri,
+        promptInstruction: userInstruction.trim() || undefined,
+        createdAt: Date.now(),
+      }, ...prev])
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setRegenerating(false)
     }
   }
 
@@ -601,12 +707,52 @@ export function TryOn() {
 
           {resultUri && !generating && (
             <>
-              <div className="border-2 border-[#111] overflow-hidden">
+              {/* Result image — stays visible with overlay spinner during regeneration */}
+              <div className="relative border-2 border-[#111] overflow-hidden">
                 <img src={`/${resultUri}`} alt="Try-on result" className="w-full min-h-[60vh] object-contain bg-[#f0f0f0]" />
+                {regenerating && (
+                  <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                    <Spinner size={40} />
+                  </div>
+                )}
               </div>
-              <Button onClick={tryAgain} variant="secondary" className="w-full">
-                Try Again
-              </Button>
+
+              {/* Refine section */}
+              <div className="flex flex-col gap-2">
+                <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em]">Refine how it's worn</p>
+                <textarea
+                  value={userInstruction}
+                  onChange={e => setUserInstruction(e.target.value)}
+                  rows={2}
+                  placeholder="e.g. worn as a turban, belted at waist, hood up..."
+                  className="w-full border-2 border-[#111] p-2 font-mono text-[11px] resize-none placeholder:text-[#888] focus:outline-none"
+                />
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                  {wearChips.map(chip => (
+                    <button
+                      key={chip.label}
+                      onClick={() => setUserInstruction(chip.instruction)}
+                      className={`shrink-0 px-2 py-1 border text-[9px] font-mono uppercase tracking-[0.06em] transition-colors ${
+                        userInstruction === chip.instruction
+                          ? 'bg-[#111] text-white border-[#111]'
+                          : 'border-[#888] text-[#888] hover:border-[#111] hover:text-[#111]'
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <Button onClick={tryAgain} variant="secondary" className="flex-1" disabled={regenerating}>
+                  ← Items
+                </Button>
+                <Button onClick={handleRegenerate} className="flex-1" disabled={regenerating}>
+                  {regenerating ? 'Generating…' : '↺ Regenerate'}
+                </Button>
+              </div>
             </>
           )}
         </>

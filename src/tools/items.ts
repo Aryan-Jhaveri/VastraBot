@@ -31,6 +31,7 @@ export async function addItem(input: AddItemInput): Promise<{ item: Item }> {
     tags: JSON.stringify(input.tags ?? []),
     aiDescription: undefined,
     occasion: JSON.stringify([]),
+    wearContext: input.wearContext ?? undefined,
   })
 
   return { item }
