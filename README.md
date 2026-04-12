@@ -48,17 +48,66 @@
 
 ## Demo
 
-> GIFs coming soon — recorded from the walkthrough video.
+Full walkthrough: **[youtu.be/9sJEkOxy5HA](https://youtu.be/9sJEkOxy5HA)**
 
-| Feature | Preview |
-|---|---|
-| Adding a clothing item via Telegram | *(gif)* |
-| AI outfit suggestion with live weather | *(gif)* |
-| Virtual try-on flow | *(gif)* |
-| Care label scan | *(gif)* |
-| Web dashboard — Closet page | *(gif)* |
-| Web dashboard — Outfits builder | *(gif)* |
-| Outfit push notification (scheduled) | *(gif)* |
+<table>
+<tr>
+<td align="center" width="50%">
+<a href="https://youtu.be/9sJEkOxy5HA?t=0">
+<img src="assets/demos/chat.gif" width="300" alt="Ask about your wardrobe"/>
+</a>
+<br/><b>Ask about your wardrobe</b>
+</td>
+<td align="center" width="50%">
+<a href="https://youtu.be/9sJEkOxy5HA?t=41">
+<img src="assets/demos/add-item.gif" width="300" alt="Add a clothing item"/>
+</a>
+<br/><b>Add a clothing item</b>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="https://youtu.be/9sJEkOxy5HA?t=72">
+<img src="assets/demos/outfits-builder.gif" width="300" alt="Outfits builder"/>
+</a>
+<br/><b>Outfits builder</b>
+</td>
+<td align="center">
+<a href="https://youtu.be/9sJEkOxy5HA?t=122">
+<img src="assets/demos/tryon-hijab.gif" width="300" alt="Virtual try-on with hijab"/>
+</a>
+<br/><b>Virtual try-on — hijab</b>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="https://youtu.be/9sJEkOxy5HA?t=257">
+<img src="assets/demos/scheduled-notification.gif" width="300" alt="Scheduled outfit notification"/>
+</a>
+<br/><b>Scheduled outfit notification</b>
+</td>
+<td align="center">
+<a href="https://youtu.be/9sJEkOxy5HA?t=340">
+<img src="assets/demos/closet-page.gif" width="300" alt="Closet page"/>
+</a>
+<br/><b>Closet page</b>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="https://youtu.be/9sJEkOxy5HA?t=457">
+<img src="assets/demos/outfit-suggestion.gif" width="300" alt="AI outfit suggestion"/>
+</a>
+<br/><b>AI outfit suggestion with live weather</b>
+</td>
+<td align="center">
+<a href="https://youtu.be/9sJEkOxy5HA?t=542">
+<img src="assets/demos/tryon-coat.gif" width="300" alt="Virtual try-on with trench coat"/>
+</a>
+<br/><b>Virtual try-on — trench coat</b>
+</td>
+</tr>
+</table>
 
 ---
 
@@ -91,6 +140,12 @@ src/
 node --version   # should print v20.x.x or higher
 ```
 If not installed, download it from [nodejs.org](https://nodejs.org) (choose the LTS version).
+
+**cloudflared** — used by `npm run dev` to create a public HTTPS tunnel automatically:
+```bash
+brew install cloudflare/cloudflare/cloudflared   # macOS
+# Linux: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+```
 
 **A Gemini API key** (free):
 1. Go to [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
@@ -133,50 +188,67 @@ Open `.env` and fill in your values:
 | `TELEGRAM_BOT_TOKEN` | [@BotFather](https://t.me/BotFather) on Telegram | Yes |
 | `TELEGRAM_ALLOWED_USER_ID` | [@userinfobot](https://t.me/userinfobot) on Telegram | Yes |
 | `WEB_AUTH_PASSWORD` | Any strong password you choose | Yes |
-| `WEB_APP_URL` | Your tunnel URL (see Step 4) | Dev only |
-| `VISION_MODEL` | Optional — defaults to `gemma-4-flash`. Set to `gemini-2.0-flash` to use Gemini instead | No |
+| `WEB_APP_URL` | **Dev:** auto-patched by `npm run dev` — leave blank. **Docker/prod:** your permanent tunnel URL | No for dev |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Docker named-tunnel only — see [Step 4 Docker](#step-4-alternative--run-with-docker) | No |
+| `VISION_MODEL` | Defaults to `gemma-4-31b-it`. Set to `gemini-2.0-flash` to use Gemini instead | No |
 
 ---
 
 ### Step 4 — Run (development)
 
-> **Note on `WEB_APP_URL`:** This is only needed for the Telegram mini-app button (the web dashboard link inside the bot). If you're just using the bot commands and the web dashboard directly in a browser, you can leave it blank and skip the tunnel entirely.
-
-You need two terminals (three if you want the Telegram mini-app button):
+One command starts everything — cloudflared tunnel, Express API, Vite dev server, and Telegram bot:
 
 ```bash
-# Terminal 1 — web dashboard + API
-npm run web:dev
-# Opens Express on :3000 and the React UI on :5173
+npm run dev
 ```
 
+What it does:
+1. Starts a [Cloudflare Quick Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) pointing at Vite (`:5173`)
+2. Patches `WEB_APP_URL` in your `.env` with the new tunnel URL automatically
+3. Starts Express on `:3000` + Vite on `:5173` (with HMR)
+4. Starts the Telegram bot (long polling)
+
+The web dashboard is at `http://localhost:5173`. The Telegram mini-app button is wired to the tunnel URL automatically — no manual copy-paste needed.
+
+> **Note:** `cloudflared` must be installed (see Step 1). Quick tunnels get a new random URL on every restart; the bot menu button is updated automatically each time. If you want a permanent URL across restarts, set up a [named Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/) (free, one-time), set `WEB_APP_URL` to your hostname in `.env`, and `npm run dev` will leave it untouched.
+
+**Manual alternative** (if you don't want the tunnel):
 ```bash
-# Terminal 2 — Telegram bot
-npm run telegram
+# Terminal 1
+npm run web:dev   # Express :3000 + Vite :5173
+
+# Terminal 2
+npm run telegram  # Telegram bot (WEB_APP_URL optional)
 ```
-
-**Optional — Telegram mini-app button (needs a public HTTPS URL):**
-
-The simplest dev option is a [named Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/) — free, one-time setup, permanent URL that never changes:
-
-1. [Create a free Cloudflare account](https://cloudflare.com) → add any domain (or use a Cloudflare subdomain)
-2. Follow the [named tunnel setup guide](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/) (~5 min)
-3. Set `WEB_APP_URL=https://your-permanent-subdomain.your-domain.com` in `.env` — you never touch this again
-
-Avoid **Quick Tunnels** (`cloudflared tunnel --url ...`) — they assign a new random URL on every restart and require re-pasting into `.env` each time.
 
 ---
 
 ### Step 4 (alternative) — Run with Docker
 
-If you have [Docker Desktop](https://docs.docker.com/get-docker/) installed, this is the simplest option:
+If you have [Docker Desktop](https://docs.docker.com/get-docker/) installed:
 
 ```bash
 cp .env.example .env   # fill in your values first
 docker compose up
 ```
 
-The app starts on `http://localhost:3000`. The Telegram bot starts automatically in the same container. Your wardrobe data is persisted in a Docker volume.
+The app starts on `http://localhost:3000`. The Telegram bot starts automatically in the same container. A `cloudflared` sidecar starts in the background to expose the app publicly.
+
+**Tunnel options** — edit `docker-compose.yml` and choose one:
+
+**Option A — Quick tunnel** (default, no account needed):
+- The `cloudflared` service starts automatically with a random URL
+- Find the URL in logs: `docker compose logs cloudflared | grep trycloudflare.com`
+- Copy it, set `WEB_APP_URL=<url>` in `.env`, then `docker compose restart closet`
+- URL changes on every `docker compose up`
+
+**Option B — Named tunnel** (permanent URL, recommended for always-on):
+1. Go to [dash.cloudflare.com](https://dash.cloudflare.com) → Zero Trust → Networks → Tunnels → Create a Tunnel
+2. Add a Public Hostname: `closet.yourdomain.com` → `http://closet:3000`
+3. Copy the token shown on screen
+4. In `.env`: set `CLOUDFLARE_TUNNEL_TOKEN=<token>` and `WEB_APP_URL=https://closet.yourdomain.com`
+5. In `docker-compose.yml`: swap the active `command:` line to the named-tunnel one (instructions in the file)
+6. `docker compose up -d` — URL is permanent, no restarts needed
 
 ---
 
@@ -285,9 +357,9 @@ docker compose up -d --build
 
 ### Option D — Home server or Raspberry Pi (free, runs locally)
 
-If you have a spare machine (old laptop, Mac mini, Raspberry Pi 4+), you can run VastraBot locally for free. Accessible on your home network; add a tunnel for remote access.
+If you have a spare machine (old laptop, Mac mini, Raspberry Pi 4+), you can run VastraBot locally for free. Accessible on your home network; cloudflared is built into the Docker Compose setup for remote access.
 
-**Requirements:** Node.js 20+ or Docker installed on the machine.
+**Requirements:** Docker installed on the machine.
 
 ```bash
 git clone https://github.com/Aryan-Jhaveri/VastraBot.git
@@ -299,7 +371,7 @@ docker compose up -d
 
 The web dashboard is at `http://[machine-ip]:3000` from any device on your network.
 
-**Remote access (optional):** Set up a [named Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/) (free) pointing at `localhost:3000`. You get a permanent HTTPS URL — set it as `WEB_APP_URL` once and never touch it again. Don't use Quick Tunnels here; those generate a new random URL on every restart.
+**Remote access:** The `cloudflared` sidecar starts automatically. For a stable URL that survives restarts, use Option B (named tunnel) described in [Step 4 Docker](#step-4-alternative--run-with-docker). Set `WEB_APP_URL` to your permanent hostname once — the Telegram mini-app button will always point to the right place.
 
 ---
 
