@@ -15,8 +15,13 @@ const MAX_RETRIES  = 30   // 30 × 500 ms = 15 s max wait
 const RETRY_DELAY  = 500  // ms between attempts
 
 export async function resolveTunnelUrl(): Promise<string | undefined> {
-  // Skip if a URL is already provided (named tunnel, Render, manual .env)
-  if (process.env.WEB_APP_URL || process.env.RENDER_EXTERNAL_URL) return undefined
+  // Skip for permanent/managed URLs — Render sets RENDER_EXTERNAL_URL automatically;
+  // named tunnels use CLOUDFLARE_TUNNEL_TOKEN and a fixed WEB_APP_URL in .env.
+  // Do NOT skip for a stale Quick Tunnel URL (*.trycloudflare.com) in WEB_APP_URL —
+  // that's exactly the case we need to overwrite.
+  if (process.env.RENDER_EXTERNAL_URL) return undefined
+  if (process.env.CLOUDFLARE_TUNNEL_TOKEN) return undefined
+  if (process.env.WEB_APP_URL && !process.env.WEB_APP_URL.includes('trycloudflare.com')) return undefined
 
   console.log(`[tunnel] Polling ${METRICS_URL} for Quick Tunnel URL...`)
 
