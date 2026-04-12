@@ -9,11 +9,10 @@
  * attempts fail silently and the function returns undefined after the timeout.
  */
 
-const METRICS_HOST  = process.env.CLOUDFLARE_METRICS_HOST ?? 'cloudflared'
-const QUICKTUNNEL   = `http://${METRICS_HOST}:2000/quicktunnel`
-const HEALTHZ       = `http://${METRICS_HOST}:2000/healthz`
-const MAX_RETRIES   = 40   // 40 × 500 ms = 20 s max wait
-const RETRY_DELAY   = 500  // ms between attempts
+const METRICS_HOST = process.env.CLOUDFLARE_METRICS_HOST ?? 'cloudflared'
+const QUICKTUNNEL  = `http://${METRICS_HOST}:2000/quicktunnel`
+const MAX_RETRIES  = 30   // 30 × 500 ms = 15 s max wait
+const RETRY_DELAY  = 500  // ms between attempts
 
 export async function resolveTunnelUrl(): Promise<string | undefined> {
   // Skip for permanent/managed URLs — Render sets RENDER_EXTERNAL_URL automatically;
@@ -26,41 +25,20 @@ export async function resolveTunnelUrl(): Promise<string | undefined> {
 
   console.log(`[tunnel] Polling ${QUICKTUNNEL} for Quick Tunnel URL...`)
 
-  let hostname: string | undefined
-
-  // Phase 1 — get the assigned hostname from the metrics API
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
       const res  = await fetch(QUICKTUNNEL, { signal: AbortSignal.timeout(2000) })
       const data = await res.json() as { hostname?: string }
-      if (data.hostname) { hostname = data.hostname; break }
+      if (data.hostname) {
+        console.log(`[tunnel] URL → https://${data.hostname}`)
+        return `https://${data.hostname}`
+      }
     } catch {
       // cloudflared not ready yet — keep polling
     }
     await new Promise(r => setTimeout(r, RETRY_DELAY))
   }
 
-  if (!hostname) {
-    console.warn('[tunnel] Could not get Quick Tunnel hostname within timeout')
-    return undefined
-  }
-
-  // Phase 2 — wait until the tunnel is healthy (connection registered with Cloudflare edge)
-  // /healthz returns 200 only after at least one tunnel connection is established.
-  console.log(`[tunnel] Waiting for tunnel to become healthy...`)
-  for (let i = 0; i < MAX_RETRIES; i++) {
-    try {
-      const res = await fetch(HEALTHZ, { signal: AbortSignal.timeout(2000) })
-      if (res.ok) {
-        console.log(`[tunnel] Tunnel healthy → https://${hostname}`)
-        return `https://${hostname}`
-      }
-    } catch {
-      // not ready yet
-    }
-    await new Promise(r => setTimeout(r, RETRY_DELAY))
-  }
-
-  console.warn('[tunnel] Tunnel did not become healthy within timeout — using URL anyway')
-  return `https://${hostname}`
+  console.warn('[tunnel] Could not resolve Quick Tunnel URL within timeout — bot will start without web app URL')
+  return undefined
 }
