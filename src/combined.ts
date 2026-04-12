@@ -9,9 +9,12 @@
  */
 import 'dotenv/config'
 import { app } from './transport/web/server.js'
+import { resolveTunnelUrl } from './tunnel.js'
 
 const PORT = parseInt(process.env.PORT ?? process.env.WEB_PORT ?? '3000', 10)
 
+// Start Express first — cloudflared depends_on this port being up before it can
+// assign a Quick Tunnel URL.
 const server = app.listen(PORT, () => {
   console.log(`Closet web server running on port ${PORT}`)
 })
@@ -25,8 +28,15 @@ server.on('error', (err: NodeJS.ErrnoException) => {
   process.exit(1)
 })
 
-// Start Telegram bot as a side-effect in the same process (long-polling, non-blocking for Express)
 if (process.env.TELEGRAM_BOT_TOKEN) {
+  // Resolve the Quick Tunnel URL before the bot calls setChatMenuButton().
+  // If WEB_APP_URL is already set (named tunnel / Render) this returns immediately.
+  const tunnelUrl = await resolveTunnelUrl()
+  if (tunnelUrl) {
+    process.env.WEB_APP_URL = tunnelUrl
+    console.log(`[tunnel] URL → ${tunnelUrl}`)
+  }
+
   import('./transport/telegram/index.js').catch(err => {
     console.error('[telegram] Failed to start bot:', err)
     // Non-fatal — web server keeps running
