@@ -10,7 +10,7 @@ Only the latest version of VastraBot is supported for security updates.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability within this project, please do not open a public issue. Instead, please report it via the following method:
+If you discover a security vulnerability within this project, please open a public issue. Maybe try to please report it via the following method:
 
 1.  **Email:** : Unfortunately the project isn't maintained on email, please write PR or message me on LinkedIn/Github`
 2.  **Details:** Include as much information as possible, including steps to reproduce the issue.
