@@ -2,7 +2,8 @@ import { Router } from 'express'
 import multer from 'multer'
 import * as queries from '../../../db/queries.js'
 import { imageToBase64, deleteImage, saveImageFromBase64 } from '../../../storage/images.js'
-import { generateTryOn } from '../../../ai/tryon.js'
+import { generateTryOn, generateWearSuggestions } from '../../../ai/tryon.js'
+import { isModelBusy } from '../../../ai/client.js'
 import type { Item } from '../../../types/index.js'
 
 function buildGarmentContext(item: Item): string {
@@ -40,6 +41,31 @@ router.delete('/:id', async (req, res) => {
     queries.deleteTryonResult(req.params.id)
     res.status(204).end()
   } catch (err) {
+    res.status(500).json({ error: errMsg(err) })
+  }
+})
+
+// POST /api/tryon/suggestions — get AI wear suggestions for a set of items (no image gen)
+// body: { itemIds: string[] }
+router.post('/suggestions', async (req, res) => {
+  try {
+    const { itemIds } = req.body as { itemIds?: string[] }
+    if (!itemIds?.length) return res.status(400).json({ error: 'itemIds required' })
+
+    const garmentContexts: string[] = []
+    for (const itemId of itemIds) {
+      const item = queries.getItem(itemId)
+      if (item) garmentContexts.push(buildGarmentContext(item))
+    }
+
+    const suggestions = await generateWearSuggestions(garmentContexts)
+    res.json({ suggestions })
+  } catch (err) {
+    if (isModelBusy(err)) {
+      console.warn('[tryon] POST /suggestions: model busy (503), all retries exhausted')
+      return res.status(503).json({ error: 'AI model is currently busy — please try again in a few seconds' })
+    }
+    console.error('[tryon] POST /suggestions error:', err instanceof Error ? err.message : err)
     res.status(500).json({ error: errMsg(err) })
   }
 })
@@ -95,12 +121,15 @@ router.post('/', async (req, res) => {
       itemBase64s.push(b64)
     }
 
-    const resultImageUri = await generateTryOn(
-      userBase64,
-      itemBase64s,
-      garmentContexts.length ? garmentContexts : undefined,
-      userInstruction?.trim() || undefined,
-    )
+    const [resultImageUri, wearSuggestions] = await Promise.all([
+      generateTryOn(
+        userBase64,
+        itemBase64s,
+        garmentContexts.length ? garmentContexts : undefined,
+        userInstruction?.trim() || undefined,
+      ),
+      garmentContexts.length ? generateWearSuggestions(garmentContexts) : Promise.resolve([]),
+    ])
 
     // Persist the result
     const result = queries.insertTryonResult({
@@ -110,8 +139,13 @@ router.post('/', async (req, res) => {
       promptInstruction: userInstruction?.trim() || null,
     })
 
-    res.status(201).json({ resultImageUri, tryonId: result.id })
+    res.status(201).json({ resultImageUri, tryonId: result.id, wearSuggestions })
   } catch (err) {
+    if (isModelBusy(err)) {
+      console.warn('[tryon] POST /api/tryon: model busy (503), all retries exhausted')
+      return res.status(503).json({ error: 'AI model is currently busy — please try again in a few seconds' })
+    }
+    console.error('[tryon] POST /api/tryon error:', err instanceof Error ? err.message : err)
     res.status(500).json({ error: errMsg(err) })
   }
 })

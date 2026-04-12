@@ -1,6 +1,50 @@
-import { ai, IMAGE_GEN_MODEL } from './client.js'
-import { extractGeminiImage } from './parse.js'
+import { ai, IMAGE_GEN_MODEL, TEXT_MODEL, withRetry, isModelBusy } from './client.js'
+import { extractGeminiImage, parseGeminiJSON } from './parse.js'
 import { saveImageFromBase64 } from '../storage/images.js'
+
+export interface WearSuggestion {
+  label: string
+  instruction: string
+}
+
+/**
+ * Generate AI-powered styling suggestion chips for the given garments.
+ * Uses the fast vision model (not image gen) — returns in ~1s.
+ */
+export async function generateWearSuggestions(garmentContexts: string[]): Promise<WearSuggestion[]> {
+  if (!garmentContexts.length) return []
+
+  const prompt = `You are a fashion stylist. Given the garments being virtually tried on, suggest 4-6 specific ways they could be styled differently.
+
+Garments:
+${garmentContexts.map((ctx, i) => `${i + 1}. ${ctx}`).join('\n')}
+
+Return ONLY a valid JSON array with no markdown. Each item must have:
+- "label": 2-4 word chip label (e.g. "Collar up", "As hijab")
+- "instruction": 1 sentence describing exactly how to apply this style
+
+Focus on styling variations specific to these garments. For headwear/wraps, include how to drape/wrap. For coats, include open/closed/belted. For tops, include tucking/layering options.
+
+Example format: [{"label": "Belted", "instruction": "Belt the coat closed at the waist"}]`
+
+  try {
+    const response = await withRetry(
+      () => ai.models.generateContent({
+        model: TEXT_MODEL,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      }),
+      { label: '[tryon/suggestions]' },
+    )
+    return parseGeminiJSON<WearSuggestion[]>(response.text ?? '[]')
+  } catch (err) {
+    if (isModelBusy(err)) {
+      console.warn('[tryon/suggestions] Model still busy after retries — returning empty suggestions')
+    } else {
+      console.error('[tryon/suggestions] Failed:', err instanceof Error ? err.message : err)
+    }
+    return []
+  }
+}
 
 // Adapted from gemini-ai-tryon (oyeolamilekan/gemini-ai-tryon) — prompt v2.0
 const TRYON_PROMPT = `Generate a photorealistic virtual try-on image.
@@ -62,11 +106,14 @@ export async function generateTryOn(
     { text: buildPrompt(garmentContexts, userInstruction) },
   ]
 
-  const response = await ai.models.generateContent({
-    model: IMAGE_GEN_MODEL,
-    contents: [{ role: 'user', parts }],
-    config: { responseModalities: ['IMAGE', 'TEXT'] },
-  })
+  const response = await withRetry(
+    () => ai.models.generateContent({
+      model: IMAGE_GEN_MODEL,
+      contents: [{ role: 'user', parts }],
+      config: { responseModalities: ['IMAGE', 'TEXT'] },
+    }),
+    { label: '[tryon/image-gen]', delayMs: 3000 },
+  )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = extractGeminiImage(response as any)

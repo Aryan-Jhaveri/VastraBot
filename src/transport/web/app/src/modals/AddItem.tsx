@@ -85,6 +85,7 @@ export function AddItem({ onClose, onSaved }: AddItemProps) {
         material: classification?.material,
         season: splitCSV(season),
         aiDescription: classification?.ai_description,
+        wearContext: classification?.wear_context || undefined,
         tags: splitCSV(tags),
         brand: brand || undefined,
         size: size || undefined,

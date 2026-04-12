@@ -1,8 +1,6 @@
 services:
   closet:
     build: .
-    ports:
-      - "3000:3000"
     volumes:
       - ~/.closet:/data
     env_file:
@@ -11,3 +9,36 @@ services:
       - CLOSET_DATA_DIR=/data
       - NODE_ENV=production
     restart: unless-stopped
+    # Keep port 3000 accessible for local LAN access even when using cloudflared.
+    # Remove this mapping if you want cloudflared to be the only entry point.
+    ports:
+      - "3000:3000"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on:
+      - closet
+    env_file:
+      - .env
+
+    # ── Option A: Named tunnel — permanent URL (recommended for always-on use) ──
+    #
+    # 1. Go to dash.cloudflare.com → Zero Trust → Networks → Tunnels → Create a Tunnel
+    # 2. Pick "Cloudflared", name it, save the token shown on screen
+    # 3. Add a Public Hostname route:  closet.yourdomain.com  →  http://closet:3000
+    # 4. Add to .env:
+    #      CLOUDFLARE_TUNNEL_TOKEN=<paste token here>
+    #      WEB_APP_URL=https://closet.yourdomain.com
+    # 5. Switch the active command below to the named-tunnel line.
+    #
+    # command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+
+    # ── Option B: Quick tunnel — random URL, changes on every restart ──────────
+    #
+    # No Cloudflare account needed.  After each `docker compose up` run:
+    #   docker compose logs cloudflared | grep trycloudflare.com
+    # Copy the URL, update WEB_APP_URL in .env, then:
+    #   docker compose restart closet
+    #
+    command: tunnel --no-autoupdate --url http://closet:3000

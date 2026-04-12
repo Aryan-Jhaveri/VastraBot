@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { useLocation as useRouterLocation } from 'react-router-dom'
 import { fetchUserPhotos, uploadUserPhoto, deleteUserPhoto } from '../api/userPhotos'
 import { fetchItems } from '../api/items'
-import { generateTryOn, fetchTryonHistory, deleteTryonResult, uploadGarment } from '../api/tryon'
+import { generateTryOn, fetchTryonHistory, deleteTryonResult, uploadGarment, fetchWearSuggestions } from '../api/tryon'
+import type { WearSuggestion } from '../api/tryon'
 import { fetchOutfitsHydrated } from '../api/outfits'
 import type { UserPhoto } from '../api/userPhotos'
 import type { Item } from '../api/items'
@@ -14,63 +15,6 @@ import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { cropToAspectRatio } from '../lib/cropImage'
 import { nanoid } from 'nanoid'
-
-const ALL_WEAR_CHIPS = [
-  { label: 'As turban',      instruction: 'Wrap the fabric around the head as a turban' },
-  { label: 'As hijab',       instruction: 'Style as a hijab: fabric frames the face and covers the hair' },
-  { label: 'Belted',         instruction: 'Belt the coat or jacket closed at the waist' },
-  { label: 'Collar up',      instruction: 'Raise and fold the collar upward' },
-  { label: 'Unbuttoned',     instruction: 'Leave the coat or jacket fully unbuttoned and open' },
-  { label: 'Hood up',        instruction: 'Pull the hood up over the head' },
-  { label: 'Sleeves rolled', instruction: 'Roll the sleeves up to the elbow' },
-  { label: 'Draped',         instruction: 'Drape the fabric loosely over one shoulder' },
-  { label: 'Tucked in',      instruction: 'Tuck the shirt or top fully into the waistband' },
-  { label: 'Tied at front',  instruction: 'Tie the front hem of the garment in a knot' },
-  { label: 'Layered open',   instruction: 'Wear the outer layer fully open over the inner garment' },
-]
-
-type WearChip = typeof ALL_WEAR_CHIPS[number]
-
-function deriveWearChips(selectedIds: Set<string>, allItems: Item[]): WearChip[] {
-  const selected = allItems.filter(i => selectedIds.has(i.id))
-  if (selected.length === 0) return ALL_WEAR_CHIPS
-
-  const cats = new Set(selected.map(i => i.category))
-  const subs = new Set(selected.map(i => i.subcategory?.toLowerCase()).filter(Boolean) as string[])
-
-  const chips: WearChip[] = []
-
-  // Headwear / wraps
-  if (subs.has('turban'))                chips.push(ALL_WEAR_CHIPS[0])
-  if (subs.has('hijab'))                 chips.push(ALL_WEAR_CHIPS[1])
-  if (subs.has('scarf') || subs.has('dupatta') || subs.has('keffiyeh') || subs.has('tichel') || subs.has('bandana'))
-                                          chips.push(ALL_WEAR_CHIPS[7]) // Draped
-
-  // Outerwear
-  if (cats.has('outerwear')) {
-    chips.push(ALL_WEAR_CHIPS[2])  // Belted
-    chips.push(ALL_WEAR_CHIPS[3])  // Collar up
-    chips.push(ALL_WEAR_CHIPS[4])  // Unbuttoned
-    chips.push(ALL_WEAR_CHIPS[5])  // Hood up
-    chips.push(ALL_WEAR_CHIPS[10]) // Layered open
-  }
-
-  // Tops / dresses
-  if (cats.has('tops') || cats.has('dresses') || cats.has('activewear')) {
-    chips.push(ALL_WEAR_CHIPS[8])  // Tucked in
-    chips.push(ALL_WEAR_CHIPS[9])  // Tied at front
-    chips.push(ALL_WEAR_CHIPS[6])  // Sleeves rolled
-  }
-
-  // Accessories (non-headwear)
-  if (cats.has('accessories') && !subs.has('turban') && !subs.has('hijab')) {
-    if (!chips.includes(ALL_WEAR_CHIPS[7])) chips.push(ALL_WEAR_CHIPS[7]) // Draped
-  }
-
-  // Deduplicate while preserving order
-  const seen = new Set<string>()
-  return chips.filter(c => seen.has(c.label) ? false : (seen.add(c.label), true))
-}
 
 type TryOnStep = 'pick-photo' | 'pick-items' | 'result'
 type ItemsTab = 'items' | 'outfits' | 'upload'
@@ -117,6 +61,7 @@ export function TryOn() {
   const [regenerating, setRegenerating] = useState(false)
   const [resultUri, setResultUri] = useState<string | null>(null)
   const [userInstruction, setUserInstruction] = useState('')
+  const [wearSuggestions, setWearSuggestions] = useState<WearSuggestion[]>([])
   const [error, setError] = useState<string | null>(null)
 
   // History
@@ -172,6 +117,14 @@ export function TryOn() {
       .finally(() => setLoadingOutfits(false))
   }, [itemsTab])
 
+  // Lazily fetch wear suggestions when result is shown but suggestions not yet loaded
+  useEffect(() => {
+    if (step !== 'result' || wearSuggestions.length > 0 || selectedItemIds.size === 0) return
+    fetchWearSuggestions([...selectedItemIds])
+      .then(setWearSuggestions)
+      .catch(() => { /* non-critical */ })
+  }, [step, resultUri])
+
   // Filter options derived from full items array (not filteredItems, to avoid disappearing options)
   const filterCategoryOptions = useMemo(
     () => [...new Set(items.map(i => i.category))].sort(),
@@ -201,12 +154,6 @@ export function TryOn() {
   )
   const itemFilterValues = { category: filterCategory, color: filterColor, tag: filterTag }
   const itemFilterCount = [filterCategory, filterColor, filterTag].filter(Boolean).length
-
-  // Derive contextually relevant wear chips from currently selected items
-  const wearChips = useMemo(
-    () => deriveWearChips(selectedItemIds, items),
-    [selectedItemIds, items],
-  )
 
   async function handleDeletePhoto(id: string) {
     setDeletingPhotoId(id)
@@ -303,6 +250,7 @@ export function TryOn() {
         userInstruction.trim() || undefined,
       )
       setResultUri(result.resultImageUri)
+      setWearSuggestions(result.wearSuggestions ?? [])
       setHistory(prev => [{
         id: result.tryonId,
         userPhotoId: selectedPhotoId,
@@ -335,6 +283,7 @@ export function TryOn() {
         userInstruction.trim() || undefined,
       )
       setResultUri(result.resultImageUri)
+      setWearSuggestions(result.wearSuggestions ?? [])
       setHistory(prev => [{
         id: result.tryonId,
         userPhotoId: selectedPhotoId,
@@ -727,21 +676,23 @@ export function TryOn() {
                   placeholder="e.g. worn as a turban, belted at waist, hood up..."
                   className="w-full border-2 border-[#111] p-2 font-mono text-[11px] resize-none placeholder:text-[#888] focus:outline-none"
                 />
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-                  {wearChips.map(chip => (
-                    <button
-                      key={chip.label}
-                      onClick={() => setUserInstruction(chip.instruction)}
-                      className={`shrink-0 px-2 py-1 border text-[9px] font-mono uppercase tracking-[0.06em] transition-colors ${
-                        userInstruction === chip.instruction
-                          ? 'bg-[#111] text-white border-[#111]'
-                          : 'border-[#888] text-[#888] hover:border-[#111] hover:text-[#111]'
-                      }`}
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
+                {wearSuggestions.length > 0 && (
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                    {wearSuggestions.map(chip => (
+                      <button
+                        key={chip.label}
+                        onClick={() => setUserInstruction(chip.instruction)}
+                        className={`shrink-0 px-2 py-1 border text-[9px] font-mono uppercase tracking-[0.06em] transition-colors ${
+                          userInstruction === chip.instruction
+                            ? 'bg-[#111] text-white border-[#111]'
+                            : 'border-[#888] text-[#888] hover:border-[#111] hover:text-[#111]'
+                        }`}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Action buttons */}

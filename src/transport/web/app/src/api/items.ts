@@ -15,6 +15,7 @@ export interface Item {
   season: string
   tags: string
   aiDescription: string | null
+  wearContext: string | null
   occasion: string
   timesWorn: number
   lastWornAt: number | null
@@ -31,6 +32,7 @@ export interface ItemClassification {
   season: string[]
   ai_description: string
   suggested_tags: string[]
+  wear_context?: string | null
 }
 
 export interface ItemsPage {

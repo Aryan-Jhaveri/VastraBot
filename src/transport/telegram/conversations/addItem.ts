@@ -1,5 +1,7 @@
+import { InlineKeyboard } from 'grammy'
 import type { Conversation } from '@grammyjs/conversations'
 import { categorizeItem } from '../../../ai/categorize.js'
+import { getUniqueTags, getUniqueSubcategories } from '../../../db/queries.js'
 import { scanTag } from '../../../ai/scanTag.js'
 import { addItem } from '../../../tools/items.js'
 import { updateItem } from '../../../tools/items.js'
@@ -28,7 +30,11 @@ export async function addItemConversation(
   // Categorize with AI
   let classification: ItemClassification
   try {
-    classification = await conversation.external(() => categorizeItem(base64))
+    classification = await conversation.external(() => {
+      const existingTags = getUniqueTags()
+      const existingSubcategories = getUniqueSubcategories()
+      return categorizeItem(base64, existingTags, existingSubcategories)
+    })
   } catch (err) {
     console.error('categorizeItem failed:', err)
     await ctx.reply('Could not analyze the photo. Try again with a clearer image.')
@@ -133,16 +139,30 @@ export async function addItemConversation(
 
   await ctx.reply(`✓ Added to your closet!`, { reply_markup: scanTagKeyboard() })
 
-  // Optionally scan care label
-  ctx = await conversation.waitFor('callback_query:data')
-  const tagChoice = ctx.callbackQuery!.data
+  // Wait for a valid scantag button — loop to discard stale callbacks from earlier steps
+  let tagChoice = ''
+  while (!['scantag:yes', 'scantag:skip'].includes(tagChoice)) {
+    ctx = await conversation.waitFor('callback_query:data')
+    tagChoice = ctx.callbackQuery!.data
+    if (!['scantag:yes', 'scantag:skip'].includes(tagChoice)) {
+      await ctx.answerCallbackQuery()
+      continue
+    }
+  }
   await ctx.answerCallbackQuery()
   await ctx.editMessageReplyMarkup()
 
   if (tagChoice === 'scantag:skip') return
 
-  await ctx.reply('Send a photo of the care label.')
-  ctx = await conversation.waitFor('message:photo')
+  await ctx.reply('Send a photo of the care label.', {
+    reply_markup: new InlineKeyboard().text('Skip ↩', 'scantag:skip'),
+  })
+  const next = await conversation.wait()
+  if (!next.message?.photo) {
+    if (next.callbackQuery) await next.answerCallbackQuery()
+    return
+  }
+  ctx = next
 
   const tagPhotoUrl = await getPhotoUrl(ctx)
   const tagBase64 = await conversation.external(() => downloadPhotoAsBase64(tagPhotoUrl))

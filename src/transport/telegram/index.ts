@@ -96,6 +96,11 @@ async function main() {
   // ── Photo messages → addItem conversation ─────────────────────────────────
 
   bot.on('message:photo', async ctx => {
+    const active = await ctx.conversation.active()
+    if (Object.keys(active).length > 0) {
+      await ctx.reply("You're in the middle of something. Send /cancel to exit first.")
+      return
+    }
     await ctx.conversation.enter('addItem')
   })
 

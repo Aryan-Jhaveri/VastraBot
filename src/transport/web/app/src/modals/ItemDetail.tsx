@@ -137,6 +137,13 @@ export function ItemDetail({ item: initialItem, onClose, onChanged }: ItemDetail
             placeholder="e.g. t-shirt"
           />
 
+          {item.wearContext && (
+            <div>
+              <p className="text-[9px] font-bold font-mono uppercase tracking-[0.1em] border-b-2 border-[#111] pb-1.5 mb-2">Wear Note</p>
+              <p className="text-[10px] font-mono text-[#555] italic">{item.wearContext}</p>
+            </div>
+          )}
+
           <InlineField
             label="Color"
             value={item.primaryColor}

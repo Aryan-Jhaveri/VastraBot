@@ -23,6 +23,15 @@ export function getUniqueTags(): string[] {
   return [...tagSet].sort()
 }
 
+export function getUniqueSubcategories(): string[] {
+  const rows = db.select({ subcategory: items.subcategory }).from(items).all() as { subcategory: string | null }[]
+  const set = new Set<string>()
+  for (const row of rows) {
+    if (row.subcategory) set.add(row.subcategory)
+  }
+  return [...set].sort()
+}
+
 export function getItem(id: string): Item | undefined {
   return db.select().from(items).where(eq(items.id, id)).get() as Item | undefined
 }

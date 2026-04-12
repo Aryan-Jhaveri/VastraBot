@@ -13,6 +13,7 @@
     "web:dev": "concurrently \"tsx watch src/transport/web/server.ts\" \"npm run dev --prefix src/transport/web/app\"",
     "web:build": "cd src/transport/web/app && npm run build",
     "web": "NODE_ENV=production tsx src/transport/web/server.ts",
+    "dev": "tsx scripts/dev.ts",
     "start": "NODE_ENV=production tsx src/combined.ts"
   },
   "dependencies": {

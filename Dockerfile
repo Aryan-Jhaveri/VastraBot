@@ -26,4 +26,6 @@ ENV NODE_ENV=production
 ENV CLOSET_DATA_DIR=/data
 EXPOSE 3000
 
-CMD ["npx", "tsx", "src/transport/web/server.ts"]
+# combined.ts starts Express + Telegram bot in a single process.
+# Web-only mode (no TELEGRAM_BOT_TOKEN): just the Express server.
+CMD ["npx", "tsx", "src/combined.ts"]
