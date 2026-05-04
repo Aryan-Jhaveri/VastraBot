@@ -3,7 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import { rateLimit } from 'express-rate-limit'
-import { join, dirname } from 'path'
+import { join, dirname, normalize, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { existsSync } from 'fs'
 import { createHmac } from 'crypto'
@@ -11,7 +11,7 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { db, DATA_DIR } from '../../db/client.js'
 import { mkdirSync } from 'fs'
 import { resolveImagePath } from '../../storage/images.js'
-import { authGuard, getPassword } from './middleware.js'
+import { authGuard, getPassword, sessionToken } from './middleware.js'
 import { getSetting, setSetting } from '../../db/queries.js'
 import itemsRouter from './routes/items.js'
 import outfitsRouter from './routes/outfits.js'
@@ -122,6 +122,14 @@ const authLimiter = rateLimit({
   message: { error: 'Too many login attempts, try again later' },
 })
 
+// General limiter for image/asset serving — 300 req/min per IP
+const assetLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
 // Public — frontend checks this to decide first-run vs login vs open access
 app.get('/api/auth/status', (_req, res) => {
   res.json({ hasPassword: Boolean(getPassword()) })
@@ -137,9 +145,9 @@ app.post('/api/auth/telegram', authLimiter, (req, res) => {
   if (!validateTelegramInitData(initData, botToken)) {
     return res.status(401).json({ error: 'Invalid Telegram data' })
   }
-  const token = getPassword() ?? ''
-  res.cookie('closet-auth', token, { httpOnly: true, sameSite: 'none', secure: true })
-  res.json({ token })
+  const tok = sessionToken(getPassword() ?? '')
+  res.cookie('closet-auth', tok, { httpOnly: true, sameSite: 'none', secure: true })
+  res.json({ token: tok })
 })
 
 // Auth login endpoint — sets httpOnly cookie as backup for image requests
@@ -149,12 +157,13 @@ app.post('/api/auth', authLimiter, (req, res) => {
   if (expected && password !== expected) {
     return res.status(401).json({ error: 'Wrong password' })
   }
-  res.cookie('closet-auth', password ?? '', {
+  const tok = sessionToken(password ?? '')
+  res.cookie('closet-auth', tok, {
     httpOnly: true,
     sameSite: isDev ? 'lax' : 'none',
     secure: !isDev,
   })
-  res.json({ ok: true })
+  res.json({ ok: true, token: tok })
 })
 
 // Logout — clears the httpOnly auth cookie
@@ -180,21 +189,27 @@ app.post('/api/settings/password', authLimiter, (req, res) => {
     }
   }
   setSetting('password', newPassword)
-  res.cookie('closet-auth', newPassword, {
+  const tok = sessionToken(newPassword)
+  res.cookie('closet-auth', tok, {
     httpOnly: true,
     sameSite: isDev ? 'lax' : 'none',
     secure: !isDev,
   })
-  res.json({ token: newPassword })
+  res.json({ token: tok })
 })
 
-// Image serving — protected by auth guard
+// Image serving — protected by auth guard + rate limiter
 // Use app.use so req.path gives the sub-path (Express 5 wildcard syntax changed)
-app.use('/images', authGuard, (req, res) => {
-  // req.path = e.g. "/items/abc123.jpg"
-  // Use relative path + root option — send@1.x (Express 5) treats dotfile dirs like .closet as 404
-  const relativePath = `images${req.path}`
-  if (!existsSync(resolveImagePath(relativePath))) return res.status(404).send('Not found')
+app.use('/images', assetLimiter, authGuard, (req, res) => {
+  // Normalize to collapse any ".." segments, then verify path stays within images/
+  const safe = normalize(req.path).replace(/\\/g, '/')
+  if (safe.includes('..')) return res.status(400).send('Invalid path')
+  const relativePath = `images/${safe.replace(/^\//, '')}`
+  const absPath = resolveImagePath(relativePath)
+  if (!resolve(absPath).startsWith(resolve(join(DATA_DIR, 'images')))) {
+    return res.status(400).send('Invalid path')
+  }
+  if (!existsSync(absPath)) return res.status(404).send('Not found')
   res.sendFile(relativePath, { root: DATA_DIR })
 })
 
@@ -211,7 +226,7 @@ app.use('/api/settings', authGuard, settingsRouter)
 if (!isDev) {
   const distDir = join(__dirname, 'app/dist')
   app.use(express.static(distDir))
-  app.get('/{*path}', (_req, res) => {
+  app.get('/{*path}', assetLimiter, (_req, res) => {
     res.sendFile(join(distDir, 'index.html'))
   })
 }

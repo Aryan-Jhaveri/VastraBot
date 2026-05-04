@@ -1,15 +1,15 @@
 const AUTH_KEY = 'closet-auth-token'
 
 export function getToken(): string {
-  return localStorage.getItem(AUTH_KEY) ?? ''
+  return sessionStorage.getItem(AUTH_KEY) ?? ''
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(AUTH_KEY, token)
+  sessionStorage.setItem(AUTH_KEY, token)
 }
 
 export function clearToken(): void {
-  localStorage.removeItem(AUTH_KEY)
+  sessionStorage.removeItem(AUTH_KEY)
 }
 
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {

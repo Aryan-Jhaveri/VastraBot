@@ -114,9 +114,10 @@ describe('server auth integration', () => {
   it('returns 200 on protected routes with correct token', async () => {
     process.env.WEB_AUTH_PASSWORD = 'testpass'
     const { app } = await import('../../../src/transport/web/server.js')
+    const { sessionToken } = await import('../../../src/transport/web/middleware.js')
     const res = await request(app)
       .get('/api/items')
-      .set('Authorization', 'Bearer testpass')
+      .set('Authorization', `Bearer ${sessionToken('testpass')}`)
     expect(res.status).toBe(200)
   })
 
@@ -148,8 +149,9 @@ describe('server auth integration', () => {
     const res = await request(app)
       .post('/api/auth/telegram')
       .send({ initData })
+    const { sessionToken } = await import('../../../src/transport/web/middleware.js')
     expect(res.status).toBe(200)
-    expect(res.body.token).toBe('testpass')
+    expect(res.body.token).toBe(sessionToken('testpass'))
   })
 
   it('/api/auth/telegram rejects invalid initData', async () => {

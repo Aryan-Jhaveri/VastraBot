@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { createHmac } from 'crypto'
 import type { Request, Response, NextFunction } from 'express'
+
+function tok(password: string): string {
+  return createHmac('sha256', 'closet-session-v1').update(password).digest('hex')
+}
 
 // Mock DB queries so middleware doesn't need a real SQLite connection
 vi.mock('../../../src/db/queries.js', () => ({
@@ -63,7 +68,7 @@ describe('authGuard middleware', () => {
   it('allows through with correct Bearer token', async () => {
     process.env.WEB_AUTH_PASSWORD = 'secret'
     const { authGuard } = await import('../../../src/transport/web/middleware.js')
-    const { req, res, next } = makeReqRes({ authorization: 'Bearer secret' })
+    const { req, res, next } = makeReqRes({ authorization: `Bearer ${tok('secret')}` })
     authGuard(req, res, next)
     expect(next).toHaveBeenCalledOnce()
     expect(res.status).not.toHaveBeenCalled()
@@ -72,7 +77,7 @@ describe('authGuard middleware', () => {
   it('allows through with correct cookie', async () => {
     process.env.WEB_AUTH_PASSWORD = 'secret'
     const { authGuard } = await import('../../../src/transport/web/middleware.js')
-    const { req, res, next } = makeReqRes({}, { 'closet-auth': 'secret' })
+    const { req, res, next } = makeReqRes({}, { 'closet-auth': tok('secret') })
     authGuard(req, res, next)
     expect(next).toHaveBeenCalledOnce()
     expect(res.status).not.toHaveBeenCalled()

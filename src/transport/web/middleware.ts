@@ -1,6 +1,12 @@
 import type { Request, Response, NextFunction } from 'express'
-import { timingSafeEqual } from 'crypto'
+import { timingSafeEqual, createHmac } from 'crypto'
 import { getSetting } from '../../db/queries.js'
+
+// Derives a session token from the raw password — cookies and Bearer headers
+// store this token, never the password itself.
+export function sessionToken(password: string): string {
+  return createHmac('sha256', 'closet-session-v1').update(password).digest('hex')
+}
 
 function safeEqual(a: string, b: string): boolean {
   const ba = Buffer.from(a)
@@ -21,11 +27,13 @@ export function authGuard(req: Request, res: Response, next: NextFunction): void
     return
   }
 
+  const expected = sessionToken(password)
+
   // Check Authorization: Bearer <token> header
   const authHeader = req.headers['authorization']
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.slice(7)
-    if (safeEqual(token, password)) {
+    if (safeEqual(token, expected)) {
       next()
       return
     }
@@ -33,7 +41,7 @@ export function authGuard(req: Request, res: Response, next: NextFunction): void
 
   // Check closet-auth cookie (for <img src> requests that can't set headers)
   const cookie = req.cookies?.['closet-auth']
-  if (cookie && safeEqual(cookie, password)) {
+  if (cookie && safeEqual(cookie, expected)) {
     next()
     return
   }

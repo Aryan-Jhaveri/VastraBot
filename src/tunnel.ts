@@ -21,7 +21,14 @@ export async function resolveTunnelUrl(): Promise<string | undefined> {
   // that's exactly the case we need to overwrite.
   if (process.env.RENDER_EXTERNAL_URL) return undefined
   if (process.env.CLOUDFLARE_TUNNEL_TOKEN) return undefined
-  if (process.env.WEB_APP_URL && !process.env.WEB_APP_URL.includes('trycloudflare.com')) return undefined
+  if (process.env.WEB_APP_URL) {
+    try {
+      const { hostname } = new URL(process.env.WEB_APP_URL)
+      if (!hostname.endsWith('.trycloudflare.com')) return undefined
+    } catch {
+      return undefined
+    }
+  }
 
   console.log(`[tunnel] Polling ${QUICKTUNNEL} for Quick Tunnel URL...`)
 

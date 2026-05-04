@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLocation } from '../hooks/useLocation'
 import { Button } from '../components/ui/Button'
-import { getToken, setToken, clearToken } from '../api/client'
+import { apiFetch, setToken, clearToken } from '../api/client'
 import { useSettings } from '../hooks/useSettings'
 
 export function Settings({ onLogout }: { onLogout: () => void }) {
@@ -42,23 +42,14 @@ export function Settings({ onLogout }: { onLogout: () => void }) {
     if (pwNew !== pwConfirm) { setPwError('New passwords do not match'); return }
     setPwLoading(true)
     try {
-      const res = await fetch('/api/settings/password', {
+      const res = await apiFetch('/api/settings/password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
         body: JSON.stringify({ current: pwCurrent, newPassword: pwNew }),
       })
       const body = await res.json() as { token?: string; error?: string }
       if (!res.ok) { setPwError(body.error ?? 'Failed to update password'); return }
+      // Server sets a fresh httpOnly cookie; store new session token for Bearer auth
       setToken(body.token!)
-      // Re-auth via the standard login path to ensure the httpOnly cookie is refreshed
-      await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: body.token }),
-      })
       setPwCurrent(''); setPwNew(''); setPwConfirm('')
       setPwSuccess(true)
       setShowPwForm(false)

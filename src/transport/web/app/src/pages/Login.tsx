@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { setToken, apiFetchJSON } from '../api/client'
+import { setToken } from '../api/client'
 
 interface LoginProps {
   onLogin: () => void
@@ -15,19 +15,18 @@ export function Login({ onLogin }: LoginProps) {
     setLoading(true)
     setError(null)
 
-    setToken(password)
-
     try {
-      await fetch('/api/auth', {
+      const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       })
-      await apiFetchJSON('/api/items?limit=1')
+      if (!res.ok) { setError('Wrong password'); return }
+      const { token } = await res.json() as { ok: boolean; token: string }
+      setToken(token)
       onLogin()
     } catch {
       setError('Wrong password')
-      setToken('')
     } finally {
       setLoading(false)
     }
